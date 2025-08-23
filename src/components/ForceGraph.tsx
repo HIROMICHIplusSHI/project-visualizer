@@ -1,4 +1,4 @@
-// src/components/ForceGraph.tsx（型エラー修正版）
+// src/components/ForceGraph.tsx（ズーム機能追加版）
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { type FileData } from './FileList';
@@ -7,7 +7,6 @@ interface ForceGraphProps {
   files: FileData[];
 }
 
-// D3.js用のノード型
 interface D3Node extends d3.SimulationNodeDatum {
   id: number;
   name: string;
@@ -24,7 +23,6 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     // SVGをクリア
     d3.select(svgRef.current).selectAll('*').remove();
 
-    // SVGのサイズ
     const width = 800;
     const height = 600;
 
@@ -37,6 +35,71 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       .style('border-radius', '8px')
       .style('background', 'white');
 
+    // ズーム用のグループを作成（これが重要！）
+    const g = svg.append('g');
+
+    // ズーム機能の設定
+    const zoom = d3
+      .zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.1, 4]) // 10%〜400%まで拡大縮小
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+      });
+
+    // SVGにズーム機能を適用
+    svg.call(zoom);
+
+    // ズームコントロールボタン
+    const parentNode = svgRef.current.parentNode;
+    if (!parentNode) return; // 親要素がなければ終了
+    const controls = d3
+      .select(parentNode as HTMLElement)
+      .append('div')
+      .style('position', 'absolute')
+      .style('top', '10px')
+      .style('right', '10px')
+      .style('display', 'flex')
+      .style('gap', '5px');
+
+    // ズームインボタン
+    controls
+      .append('button')
+      .text('🔍+')
+      .style('padding', '5px 10px')
+      .style('cursor', 'pointer')
+      .style('border', '1px solid #d1d5db')
+      .style('background', 'white')
+      .style('border-radius', '4px')
+      .on('click', () => {
+        svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+      });
+
+    // ズームアウトボタン
+    controls
+      .append('button')
+      .text('🔍-')
+      .style('padding', '5px 10px')
+      .style('cursor', 'pointer')
+      .style('border', '1px solid #d1d5db')
+      .style('background', 'white')
+      .style('border-radius', '4px')
+      .on('click', () => {
+        svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+      });
+
+    // リセットボタン
+    controls
+      .append('button')
+      .text('🔄')
+      .style('padding', '5px 10px')
+      .style('cursor', 'pointer')
+      .style('border', '1px solid #d1d5db')
+      .style('background', 'white')
+      .style('border-radius', '4px')
+      .on('click', () => {
+        svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
+      });
+
     // データをD3用に変換
     const nodes: D3Node[] = files.map((file) => ({
       ...file,
@@ -46,18 +109,17 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       size: file.size,
     }));
 
-    // 力学シミュレーションの設定
-    // ForceGraph.tsx の力学シミュレーション部分を修正
+    // 力学シミュレーション
     const simulation = d3
       .forceSimulation(nodes)
-      .force('charge', d3.forceManyBody().strength(-50)) // 反発力を弱める（-100 → -50）
-      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.1)) // 中心力を追加
-      .force('collision', d3.forceCollide().radius(35)) // 衝突半径を少し大きく
-      .force('x', d3.forceX(width / 2).strength(0.05)) // X方向の引力（新規）
-      .force('y', d3.forceY(height / 2).strength(0.05)); // Y方向の引力（新規）
+      .force('charge', d3.forceManyBody().strength(-50))
+      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.1))
+      .force('collision', d3.forceCollide().radius(35))
+      .force('x', d3.forceX(width / 2).strength(0.05))
+      .force('y', d3.forceY(height / 2).strength(0.05));
 
-    // グループを作成（型を明確に指定）
-    const nodeGroup = svg
+    // ノードグループ（g要素内に作成！）
+    const nodeGroup = g
       .selectAll<SVGGElement, D3Node>('g')
       .data(nodes)
       .enter()
@@ -94,7 +156,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       .attr('dy', '35')
       .style('user-select', 'none');
 
-    // ホバー効果（thisの型を指定）
+    // ホバー効果
     nodeGroup
       .on('mouseenter', function (this: SVGGElement) {
         const selection = d3.select(this).select<SVGCircleElement>('circle');
@@ -148,7 +210,6 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     // シミュレーションの更新処理
     simulation.on('tick', () => {
       nodes.forEach((d) => {
-        // 画面内に制限
         d.x = Math.max(30, Math.min(width - 30, d.x!));
         d.y = Math.max(30, Math.min(height - 30, d.y!));
       });
@@ -159,6 +220,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     // クリーンアップ
     return () => {
       simulation.stop();
+      controls.remove(); // ボタンも削除
     };
   }, [files]);
 
@@ -170,11 +232,12 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
         borderRadius: '8px',
         margin: '20px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        position: 'relative', // ボタン配置用
       }}
     >
       <h3>🎨 力学シミュレーション可視化</h3>
       <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
-        ドラッグで移動、ホバーで拡大します
+        マウスホイールでズーム、ドラッグで移動、Shiftドラッグで全体移動
       </p>
       <svg ref={svgRef}></svg>
     </div>
