@@ -1,136 +1,117 @@
-// App.tsx
-
+// App.tsx（更新版）
 import { useState } from 'react';
 import './App.css';
-import { FileNode } from './FileNode';
-
-// 型定義（新規追加）
-type FileData = {
-  id: number;
-  name: string;
-  dependencies?: string[]; // このファイルが使っている他のファイル
-};
+import Header from './components/Header';
+import URLInput from './components/URLInput';
+import FileList, { type FileData } from './components/FileList';
 
 function App() {
-  // より現実的なデータ構造に更新
+  const [repoUrl, setRepoUrl] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 初期データ
   const [files, setFiles] = useState<FileData[]>([
     {
       id: 1,
       name: 'App.tsx',
-      dependencies: ['FileNode.tsx', 'App.css'], // Appは2つのファイルを使用
+      dependencies: ['FileNode.tsx', 'App.css'],
     },
     {
       id: 2,
       name: 'main.tsx',
-      dependencies: ['App.tsx'], // mainはAppを使用
+      dependencies: ['App.tsx'],
     },
     {
       id: 3,
       name: 'FileNode.tsx',
-      dependencies: [], // FileNodeは他に依存なし
+      dependencies: [],
     },
     {
       id: 4,
       name: 'App.css',
-      dependencies: [], // CSSも依存なし
+      dependencies: [],
     },
   ]);
 
-  // 新規追加：選択中のファイルを管理
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  // URL送信時の処理
+  const handleURLSubmit = async (url: string) => {
+    console.log('GitHub URL:', url);
+    setRepoUrl(url);
+    setIsLoading(true);
 
-  // 選択をクリアする関数
-  const clearSelection = () => {
-    setSelectedFileName(null);
+    // TODO: ここで実際のGitHub API呼び出し
+    // 今は2秒後にダミーデータを追加
+    setTimeout(() => {
+      const newFiles: FileData[] = [
+        {
+          id: Date.now(),
+          name: 'README.md',
+          dependencies: [],
+        },
+        {
+          id: Date.now() + 1,
+          name: 'package.json',
+          dependencies: [],
+        },
+      ];
+      setFiles((prev) => [...prev, ...newFiles]);
+      setIsLoading(false);
+    }, 2000);
   };
 
-  // ファイル追加（昨日の機能を修正）
+  // ファイル追加
   const addFile = () => {
     const newFile: FileData = {
       id: Date.now(),
       name: `newFile${files.length + 1}.tsx`,
-      dependencies: [], // 新しいファイルは依存関係なしで始める
+      dependencies: [],
     };
     setFiles([...files, newFile]);
   };
 
-  // ファイル削除（昨日の機能）
+  // ファイル削除
   const deleteFile = (id: number) => {
     setFiles(files.filter((file) => file.id !== id));
   };
 
   return (
     <div className='App'>
-      <h1>プロジェクト構造可視化アプリ</h1>
-      <p>ファイル数: {files.length}</p>
+      <Header title='Project Visualizer' />
 
-      <button
-        onClick={addFile}
-        style={{
-          padding: '10px 20px',
-          margin: '20px',
-          fontSize: '16px',
-          cursor: 'pointer',
-          backgroundColor: '#3B82F6',
-          color: 'white',
-          border: 'none',
-          borderRadius: '5px',
-        }}
-      >
-        ＋ ファイルを追加
-      </button>
+      {/* URL入力部分 */}
+      <URLInput onSubmit={handleURLSubmit} />
 
-      <div>
-        {files.map((file) => (
-          <div key={file.id} style={{ marginBottom: '15px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <FileNode
-                fileName={file.name}
-                dependencies={file.dependencies}
-                isSelected={selectedFileName === file.name} // 追加
-                isDependency={
-                  selectedFileName
-                    ? files
-                        .find((f) => f.name === selectedFileName)
-                        ?.dependencies?.includes(file.name) || false
-                    : false
-                } // 追加
-                onSelect={() =>
-                  setSelectedFileName(
-                    selectedFileName === file.name ? null : file.name
-                  )
-                } // 追加
-              />
-              <button
-                onClick={clearSelection} // ← ここで使う！
-                style={{
-                  padding: '10px 20px',
-                  margin: '20px',
-                  backgroundColor: '#EF4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                }}
-              ></button>
-              <button onClick={() => deleteFile(file.id)}>削除</button>
-            </div>
+      {/* 現在のリポジトリURL表示 */}
+      {repoUrl && (
+        <div
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#e8f4fd',
+            margin: '0 20px',
+            borderRadius: '6px',
+            fontSize: '14px',
+          }}
+        >
+          📍 現在のリポジトリ: <strong>{repoUrl}</strong>
+        </div>
+      )}
 
-            {/* 依存関係を表示 */}
-            {file.dependencies && file.dependencies.length > 0 && (
-              <div
-                style={{
-                  marginLeft: '40px',
-                  marginTop: '5px',
-                  fontSize: '12px',
-                  color: 'gray',
-                }}
-              >
-                → 使用: {file.dependencies.join(', ')}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      {/* ローディング表示 */}
+      {isLoading && (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '20px',
+            fontSize: '16px',
+            color: '#6b7280',
+          }}
+        >
+          ⏳ リポジトリを読み込み中...
+        </div>
+      )}
+
+      {/* ファイルリスト */}
+      <FileList files={files} onAddFile={addFile} onDeleteFile={deleteFile} />
     </div>
   );
 }

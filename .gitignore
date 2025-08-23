@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.env          // APIキー（後で使う時）
 
 # Editor directories and files
 .vscode/*
