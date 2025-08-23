@@ -6,25 +6,28 @@ import { FileNode } from '../FileNode';
 export interface FileData {
   id: number;
   name: string;
+  type?: 'file' | 'dir'; // 👈 追加
+  size?: number; // 👈 追加
   dependencies?: string[];
 }
 
 interface FileListProps {
   files: FileData[];
-  onAddFile: () => void;
-  onDeleteFile: (id: number) => void;
 }
 
-const FileList: React.FC<FileListProps> = ({
-  files,
-  onAddFile,
-  onDeleteFile,
-}) => {
+const FileList: React.FC<FileListProps> = ({ files }) => {
   // 選択状態の管理はFileList内で行う
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   const clearSelection = () => {
     setSelectedFileName(null);
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (
@@ -55,19 +58,6 @@ const FileList: React.FC<FileListProps> = ({
           >
             選択をクリア
           </button>
-          <button
-            onClick={onAddFile}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#3B82F6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-            }}
-          >
-            ＋ ファイルを追加
-          </button>
         </div>
       </div>
 
@@ -93,21 +83,18 @@ const FileList: React.FC<FileListProps> = ({
                     )
                   }
                 />
+                {/* サイズとタイプ表示 */}
+                <div
+                  style={{
+                    marginLeft: '40px',
+                    fontSize: '12px',
+                    color: '#6b7280',
+                  }}
+                >
+                  {file.type === 'dir' ? '📁 フォルダ' : `📄 ファイル`}
+                  {file.size && ` • ${formatFileSize(file.size)}`}
+                </div>
               </div>
-              <button
-                onClick={() => onDeleteFile(file.id)}
-                style={{
-                  padding: '5px 10px',
-                  backgroundColor: '#EF4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                }}
-              >
-                削除
-              </button>
             </div>
           </div>
         ))}

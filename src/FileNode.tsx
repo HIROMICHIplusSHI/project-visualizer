@@ -25,6 +25,15 @@ export function FileNode({
 
   const extension = fileName.split('.').pop() || '';
 
+  const getIcon = () => {
+    // フォルダの場合
+    if (fileName.endsWith('/') || extension === '') {
+      return isOpen ? '📂' : '📁';
+    }
+    // ファイルの場合
+    return '📄';
+  };
+
   const getColor = () => {
     switch (extension) {
       case 'tsx':
@@ -82,7 +91,7 @@ export function FileNode({
       {isSelected && <span>👉 </span>}
       {isDependency && <span>🔗 </span>} {/* 依存関係のアイコン追加！ */}
       {/* アイコンとファイル名 */}
-      {isOpen ? '📂' : '📁'} {fileName}
+      {isOpen ? '📂' : '📁'} {getIcon()} {fileName}
       {/* クリック回数の表示 */}
       <span
         style={{
