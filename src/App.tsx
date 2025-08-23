@@ -5,6 +5,7 @@ import Header from './components/Header';
 import URLInput from './components/URLInput';
 import FileList, { type FileData } from './components/FileList';
 import { fetchRepoStructure, type GitHubFile } from './services/githubApi';
+import ForceGraph from './components/ForceGraph';
 
 function App() {
   const [repoUrl, setRepoUrl] = useState<string>('');
@@ -156,6 +157,8 @@ function App() {
 
       {/* ⭐️ ここが重要！FileListを使う！ */}
       <FileList files={files} />
+      {/* D3.js可視化を追加！ */}
+      {files.length > 0 && <ForceGraph files={files} />}
     </div>
   );
 }
