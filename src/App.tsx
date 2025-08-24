@@ -1,5 +1,4 @@
-// App.tsx（実際の依存関係解析版）
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import './App.css';
 import Header from './components/Header';
 import URLInput from './components/URLInput';
@@ -24,11 +23,12 @@ function App() {
     'withDeps'
   );
   const [mode, setMode] = useState<'github' | 'local'>('local');
-
-  // ❌ getDummyDependencies 関数を削除（もう使わない）
-
-  // ⭐ convertGitHubToFileData を async に変更して、実際の依存関係を解析
-  // src/App.tsx の convertGitHubToFileData を修正
+  const [isMonitoring, setIsMonitoring] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [currentDirHandle, setCurrentDirHandle] = useState<any>(null);
+  const monitorIntervalRef = useRef<number | null>(null);
+  const filesRef = useRef<FileData[]>([]);
 
   const convertGitHubToFileData = async (
     githubFiles: GitHubFile[]
@@ -49,8 +49,7 @@ function App() {
         try {
           const content = await fetchFileContent(file.download_url);
           // ファイルのパスも渡すように変更
-          dependencies = extractDependencies(content, file.path);
-
+          dependencies = extractDependencies(content);
           // 依存関係のマッピングを改善
           dependencies = dependencies.map((dep) => {
             // フルパスでのマッチングを試みる
@@ -249,7 +248,7 @@ function App() {
         if (name.match(/\.(tsx?|jsx?|mjs|cjs)$/)) {
           try {
             const content = await file.text();
-            dependencies = extractDependencies(content, path);
+            dependencies = extractDependencies(content);
             console.log(`✅ ${name}: ${dependencies.length}個の依存関係`);
           } catch (error) {
             console.error(`❌ ${name}の読み取りエラー:`, error);
@@ -385,7 +384,16 @@ function App() {
           try {
             const file = await handle.getFile();
             const content = await file.text();
-            dependencies = extractDependencies(content, path);
+            // ⭐ デバッグ：ファイルの先頭100文字を表示
+            if (fileName === 'App.tsx') {
+              // 編集したファイル名に変更
+              console.log(
+                `📄 ${fileName}の内容（先頭）:`,
+                content.substring(0, 200)
+              );
+            }
+
+            dependencies = extractDependencies(content);
           } catch (error) {
             console.error(`❌ ${fileName}の読み取りエラー:`, error);
           }
@@ -442,6 +450,8 @@ function App() {
 
       setFiles(fileData);
       console.log(`✅ ${fileData.length}個のファイルを表示`);
+      setCurrentDirHandle(dirHandle);
+      filesRef.current = fileData;
     } catch (err) {
       const error = err as Error;
       if (error.name !== 'AbortError') {
@@ -452,6 +462,188 @@ function App() {
       setIsLoading(false);
     }
   };
+
+  const startMonitoring = () => {
+    if (!currentDirHandle) {
+      setError('フォルダが選択されていません');
+      return;
+    }
+
+    // ⭐ 監視開始前に現在のfilesをfilesRefにセット
+    filesRef.current = files;
+
+    setIsMonitoring(true);
+    console.log('🔴 リアルタイム監視を開始');
+
+    // 1秒ごとにファイルをチェック
+    monitorIntervalRef.current = window.setInterval(async () => {
+      await checkForChanges();
+    }, 1000);
+  };
+
+  const stopMonitoring = () => {
+    if (monitorIntervalRef.current) {
+      clearInterval(monitorIntervalRef.current);
+      monitorIntervalRef.current = null;
+    }
+    setIsMonitoring(false);
+    console.log('⚫ リアルタイム監視を停止');
+  };
+
+  // ファイル変更をチェック
+  const checkForChanges = async () => {
+    if (!currentDirHandle) return;
+
+    // console.log('🔍 ファイルチェック中...', new Date().toLocaleTimeString());
+
+    try {
+      const fileData: FileData[] = [];
+      let fileId = 1;
+      let hasChanges = false;
+
+      const EXCLUDE_DIRS = [
+        'node_modules',
+        '.git',
+        'dist',
+        'build',
+        '.next',
+        'coverage',
+      ];
+
+      // ディレクトリを再帰的に読み込む
+      async function* walkDirectory(
+        dirHandle: any,
+        path = ''
+      ): AsyncGenerator<{ handle: any; path: string }> {
+        for await (const entry of dirHandle.values()) {
+          const entryPath = path ? `${path}/${entry.name}` : entry.name;
+
+          if (entry.kind === 'directory' && EXCLUDE_DIRS.includes(entry.name)) {
+            continue;
+          }
+
+          if (entry.kind === 'file') {
+            yield { handle: entry, path: entryPath };
+          } else if (entry.kind === 'directory') {
+            yield* walkDirectory(entry, entryPath);
+          }
+        }
+      }
+
+      // ファイルを処理
+      for await (const { handle } of walkDirectory(currentDirHandle)) {
+        const fileName = handle.name;
+
+        if (fileName.startsWith('.') && fileName !== '.gitignore') {
+          continue;
+        }
+
+        let dependencies: string[] = [];
+
+        if (fileName.match(/\.(tsx?|jsx?|mjs|cjs)$/)) {
+          try {
+            const file = await handle.getFile();
+            const content = await file.text();
+            dependencies = extractDependencies(content);
+
+            // if (dependencies.length > 0) {
+            //   console.log(
+            //     `📦 ${fileName} の依存: ${dependencies.length}個`,
+            //     dependencies
+            //   );
+            // }
+          } catch (err) {
+            console.error('監視中のエラー:', err);
+          }
+        }
+
+        fileData.push({
+          id: fileId++,
+          name: fileName,
+          type: 'file',
+          size: (await handle.getFile()).size,
+          dependencies: dependencies,
+        });
+      }
+
+      // 比較処理
+      const oldFiles = filesRef.current;
+
+      if (oldFiles.length === 0) {
+        // 初回は比較しない
+        filesRef.current = fileData;
+        return;
+      }
+
+      console.log(
+        `📊 ファイル数: 旧=${oldFiles.length}, 新=${fileData.length}`
+      );
+
+      if (fileData.length !== oldFiles.length) {
+        hasChanges = true;
+        console.log('❗ ファイル数が異なる');
+      } else {
+        for (let i = 0; i < fileData.length; i++) {
+          const newFile = fileData[i];
+          const oldFile = oldFiles.find((f) => f.name === newFile.name);
+
+          if (!oldFile) {
+            hasChanges = true;
+            console.log(`🆕 新規ファイル: ${newFile.name}`);
+            break;
+          }
+
+          const oldDeps = oldFile.dependencies?.slice().sort() || [];
+          const newDeps = newFile.dependencies?.slice().sort() || [];
+
+          if (newFile.size !== oldFile.size) {
+            hasChanges = true;
+            console.log(
+              `📝 サイズ変更: ${newFile.name} (${oldFile.size} → ${newFile.size})`
+            );
+            break;
+          }
+
+          if (
+            oldDeps.length !== newDeps.length ||
+            !oldDeps.every((dep, i) => dep === newDeps[i])
+          ) {
+            hasChanges = true;
+            // console.log(`🔗 依存関係変更: ${newFile.name}`);
+            // console.log(`  旧: [${oldDeps.join(', ')}]`);
+            // console.log(`  新: [${newDeps.join(', ')}]`);
+            break;
+          }
+        }
+      }
+
+      if (hasChanges) {
+        console.log('✨ ファイルの変更を検出！');
+        filesRef.current = fileData;
+        setFiles(fileData);
+        setLastUpdate(new Date());
+      }
+      // else {
+      //   console.log('✅ 変更なし'); // ⭐ この行を追加
+      // }
+      // console.log('🔚 チェック完了'); // ⭐ この行も追加
+    } catch (err) {
+      console.error('監視中のエラー:', err);
+    }
+  };
+
+  // 3. handleDirectoryPickerを修正（最後にcurrentDirHandleを保存）
+  // handleDirectoryPicker関数の中の最後（setFiles(fileData)の後）に追加：
+  // setCurrentDirHandle(dirHandle);
+
+  // 4. コンポーネントのクリーンアップ（useEffectを追加）
+  useEffect(() => {
+    return () => {
+      if (monitorIntervalRef.current) {
+        clearInterval(monitorIntervalRef.current);
+      }
+    };
+  }, []);
 
   // ここから重要！return部分
   return (
@@ -676,7 +868,64 @@ function App() {
       {files.length > 0 && (
         <>
           <ViewTabs currentView={viewMode} onViewChange={setViewMode} />
+          {/* リアルタイム監視ボタン（ローカルモードの時のみ表示） */}
+          {mode === 'local' && currentDirHandle && (
+            <div
+              style={{
+                padding: '15px 20px',
+                backgroundColor: isMonitoring ? '#dcfce7' : '#f3f4f6',
+                borderBottom: '1px solid #e5e7eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '15px' }}
+              >
+                <button
+                  onClick={isMonitoring ? stopMonitoring : startMonitoring}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: isMonitoring ? '#dc2626' : '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  {isMonitoring ? (
+                    <>⏸ 監視を停止</>
+                  ) : (
+                    <>▶️ リアルタイム監視を開始</>
+                  )}
+                </button>
 
+                {isMonitoring && (
+                  <span
+                    style={{
+                      fontSize: '13px',
+                      color: '#059669',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    🔴 監視中...
+                  </span>
+                )}
+              </div>
+
+              {lastUpdate && (
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  最終更新: {lastUpdate.toLocaleTimeString()}
+                </div>
+              )}
+            </div>
+          )}
           {/* フィルターボタンを追加 */}
           <div
             style={{

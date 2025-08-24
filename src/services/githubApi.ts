@@ -131,85 +131,55 @@ export const fetchRepoStructureRecursive = async (
 };
 
 // import文を解析する関数（改良版）
-export const extractDependencies = (
-  content: string,
-  currentFilePath: string = ''
-): string[] => {
+export const extractDependencies = (content: string): string[] => {
   const dependencies: string[] = [];
+  // コメントを除去してから解析
+  // 単一行コメント（//）を削除
+  const withoutSingleLineComments = content.replace(/\/\/.*$/gm, '');
 
+  // 複数行コメント（/* */）を削除
+  const withoutComments = withoutSingleLineComments.replace(
+    /\/\*[\s\S]*?\*\//g,
+    ''
+  );
+
+  // importとrequireのパターン
   const importRegex =
     /import\s+(?:(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s+)?['"]([^'"]+)['"]/g;
+  const requireRegex = /require\s*\(['"]([^'"]+)['"]\)/g;
 
+  // importを抽出
   let match;
-  while ((match = importRegex.exec(content)) !== null) {
+  while ((match = importRegex.exec(withoutComments)) !== null) {
     const importPath = match[1];
 
-    // 外部パッケージを除外
-    const isExternalPackage =
-      !importPath.startsWith('.') &&
-      !importPath.startsWith('@/') &&
-      !importPath.startsWith('~/') &&
-      !importPath.startsWith('src/') &&
-      !importPath.startsWith('components/') &&
-      !importPath.startsWith('utils/') &&
-      !importPath.startsWith('pages/') &&
-      !importPath.startsWith('features/');
+    // 相対パスの場合、ファイル名に変換
+    if (importPath.startsWith('.')) {
+      const cleanPath = importPath
+        .replace(/^\.\//, '')
+        .replace(/^\.\.\//, '')
+        .replace(/\.(tsx?|jsx?|css|scss)$/, '');
 
-    if (isExternalPackage) {
-      continue;
-    }
+      // ファイル名だけを取得（パスの最後の部分）
+      const fileName = cleanPath.split('/').pop() || cleanPath;
 
-    let resolvedPath = importPath;
-
-    // エイリアスパスを解決
-    if (importPath.startsWith('@/')) {
-      resolvedPath = importPath.replace('@/', '');
-    } else if (importPath.startsWith('~/')) {
-      resolvedPath = importPath.replace('~/', '');
-    } else if (importPath.startsWith('./') || importPath.startsWith('../')) {
-      resolvedPath = resolveRelativePath(currentFilePath, importPath);
-    }
-
-    // 拡張子を補完
-    if (!resolvedPath.match(/\.(tsx?|jsx?|css|scss|json)$/)) {
-      resolvedPath = resolvedPath + '.tsx';
-    }
-
-    // パスからファイル名を抽出
-    const parts = resolvedPath.split('/');
-    let fileName = parts[parts.length - 1];
-
-    // index.tsxの場合は親フォルダ名も含める
-    if (fileName.startsWith('index.')) {
-      const parentFolder = parts[parts.length - 2];
-      if (parentFolder) {
-        fileName = `${parentFolder}/${fileName}`;
+      // 拡張子を推測して追加
+      if (!fileName.includes('.')) {
+        dependencies.push(fileName + '.tsx');
+      } else {
+        dependencies.push(fileName);
       }
+    } else {
+      // node_modulesからのimport
+      dependencies.push(importPath);
     }
-
-    dependencies.push(fileName);
   }
 
+  // requireも抽出
+  while ((match = requireRegex.exec(withoutComments)) !== null) {
+    dependencies.push(match[1]);
+  }
+
+  // 重複を削除
   return [...new Set(dependencies)];
-};
-
-// ヘルパー関数（1つだけ！）
-const resolveRelativePath = (
-  currentPath: string,
-  relativePath: string
-): string => {
-  const currentParts = currentPath.split('/').slice(0, -1);
-  const relativeParts = relativePath.split('/');
-
-  const resultParts = [...currentParts];
-
-  for (const part of relativeParts) {
-    if (part === '..') {
-      resultParts.pop();
-    } else if (part !== '.') {
-      resultParts.push(part);
-    }
-  }
-
-  return resultParts.join('/');
 };
