@@ -146,6 +146,24 @@ function App() {
 
   const filteredFiles = getFilteredFiles();
 
+  // npm APIからパッケージ情報を取得する関数
+  const getPackageInfo = async (packageName: string) => {
+    try {
+      const response = await fetch(`https://registry.npmjs.org/${packageName}`);
+      const data = await response.json();
+
+      return {
+        name: packageName,
+        description: data.description,
+        version: data['dist-tags']?.latest,
+        homepage: data.homepage,
+      };
+    } catch (error) {
+      console.error(`❌ ${packageName}の情報取得に失敗:`, error);
+      return null;
+    }
+  };
+
   const handleLocalFolder = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList) return;
@@ -157,42 +175,104 @@ function App() {
       const files = Array.from(fileList);
       console.log(`📁 ${files.length}個のファイルを読み込み中...`);
 
+      // 除外パターンのリスト
+      const EXCLUDE_PATTERNS = [
+        'node_modules',
+        '.git',
+        'dist',
+        'build',
+        '.next',
+        'coverage',
+        '.cache',
+        '.vscode',
+        '.idea',
+      ];
+
+      // 除外チェック関数
+      const shouldExclude = (path: string): boolean => {
+        // パスをスラッシュで分割
+        const pathParts = path.split('/');
+
+        // 各パスの部分に除外パターンが含まれているかチェック
+        return pathParts.some((part) => EXCLUDE_PATTERNS.includes(part));
+      };
+
+      // 統計情報
+      let excludedCount = 0;
+      let processedCount = 0;
+
       // FileData形式に変換
       const fileData: FileData[] = [];
+      let packageJsonContent = null;
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const path = file.webkitRelativePath;
+        const path = file.webkitRelativePath || file.name;
 
-        // .gitignoreっぽいものを除外
-        if (
-          path.includes('node_modules/') ||
-          path.includes('.git/') ||
-          path.includes('dist/') ||
-          path.includes('build/')
-        ) {
+        // 除外チェック（改善版）
+        if (shouldExclude(path)) {
+          excludedCount++;
+          console.log(`🚫 除外: ${path}`);
           continue;
         }
 
-        // ファイルかフォルダか判定
+        // パスの最後の部分（ファイル名）を取得
         const parts = path.split('/');
         const name = parts[parts.length - 1];
 
-        let dependencies: string[] = [];
-        // TypeScript/JavaScriptファイルの場合、依存関係を解析
-        if (name.match(/\.(tsx?|jsx?)$/)) {
-          const content = await file.text();
-          dependencies = extractDependencies(content);
+        // 隠しファイルの除外
+        if (name.startsWith('.') && name !== '.gitignore') {
+          excludedCount++;
+          continue;
         }
 
+        // package.jsonの処理
+        if (name === 'package.json' && parts.length === 1) {
+          // ルートのpackage.jsonのみ
+          console.log('📦 package.jsonを発見！');
+          const content = await file.text();
+          packageJsonContent = JSON.parse(content);
+          console.log('📚 依存関係:', {
+            dependencies: packageJsonContent.dependencies
+              ? Object.keys(packageJsonContent.dependencies).length
+              : 0,
+            devDependencies: packageJsonContent.devDependencies
+              ? Object.keys(packageJsonContent.devDependencies).length
+              : 0,
+          });
+          continue;
+        }
+
+        let dependencies: string[] = [];
+
+        // TypeScript/JavaScriptファイルの場合、依存関係を解析
+        if (name.match(/\.(tsx?|jsx?|mjs|cjs)$/)) {
+          try {
+            const content = await file.text();
+            dependencies = extractDependencies(content, path);
+            console.log(`✅ ${name}: ${dependencies.length}個の依存関係`);
+          } catch (error) {
+            console.error(`❌ ${name}の読み取りエラー:`, error);
+          }
+        }
+
+        processedCount++;
         fileData.push({
-          id: i + 1,
+          id: processedCount,
           name: name,
           type: name.includes('.') ? 'file' : 'dir',
           size: file.size,
           dependencies: dependencies,
         });
       }
+
+      // 統計情報の表示
+      console.log('📊 処理統計:', {
+        total: files.length,
+        processed: processedCount,
+        excluded: excludedCount,
+        excludeRate: `${Math.round((excludedCount / files.length) * 100)}%`,
+      });
 
       setFiles(fileData);
       console.log(`✅ ${fileData.length}個のファイルを表示`);
@@ -203,11 +283,174 @@ function App() {
       setIsLoading(false);
     }
   };
-
   const clearAll = () => {
     setFiles([]);
     setRepoUrl('');
     setError('');
+  };
+
+  // App.tsxに追加する新しい関数
+
+  // File System Access APIを使った新しいハンドラー
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const handleDirectoryPicker = async () => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // @ts-expect-error - File System Access APIはまだ型定義が不完全
+      const dirHandle = await window.showDirectoryPicker();
+      console.log(`📁 ディレクトリ選択: ${dirHandle.name}`);
+
+      const fileData: FileData[] = [];
+      let fileId = 1;
+      let packageJsonContent: Record<string, any> | null = null; // anyのままでOK（ESLintの設定次第）
+
+      // 統計情報
+      const stats = {
+        total: 0,
+        processed: 0,
+        excluded: 0,
+      };
+
+      // 除外パターン
+      const EXCLUDE_DIRS = [
+        'node_modules',
+        '.git',
+        'dist',
+        'build',
+        '.next',
+        'coverage',
+      ];
+
+      // ディレクトリを再帰的に読み込む（型定義をanyに戻す）
+      async function* walkDirectory(
+        dirHandle: any,
+        path = ''
+      ): AsyncGenerator<{ handle: any; path: string }> {
+        for await (const entry of dirHandle.values()) {
+          stats.total++;
+
+          const entryPath = path ? `${path}/${entry.name}` : entry.name;
+
+          // 除外チェック
+          if (entry.kind === 'directory' && EXCLUDE_DIRS.includes(entry.name)) {
+            stats.excluded++;
+            console.log(`🚫 除外: ${entryPath}/`);
+            continue;
+          }
+
+          if (entry.kind === 'file') {
+            yield { handle: entry, path: entryPath };
+          } else if (entry.kind === 'directory') {
+            yield* walkDirectory(entry, entryPath);
+          }
+        }
+      }
+
+      // ファイルを処理
+      for await (const { handle, path } of walkDirectory(dirHandle)) {
+        const fileName = handle.name;
+
+        // 隠しファイルをスキップ
+        if (fileName.startsWith('.') && fileName !== '.gitignore') {
+          stats.excluded++;
+          continue;
+        }
+
+        // package.jsonの特別処理
+        if (fileName === 'package.json' && !path.includes('/')) {
+          console.log('📦 ルートのpackage.jsonを発見！');
+          const file = await handle.getFile();
+          const content = await file.text();
+          packageJsonContent = JSON.parse(content);
+
+          // null チェックを追加
+          if (packageJsonContent) {
+            console.log('📚 依存関係:', {
+              dependencies: packageJsonContent.dependencies
+                ? Object.keys(packageJsonContent.dependencies).length
+                : 0,
+              devDependencies: packageJsonContent.devDependencies
+                ? Object.keys(packageJsonContent.devDependencies).length
+                : 0,
+            });
+          }
+        }
+
+        let dependencies: string[] = [];
+
+        // JS/TSファイルの依存関係を解析
+        if (fileName.match(/\.(tsx?|jsx?|mjs|cjs)$/)) {
+          try {
+            const file = await handle.getFile();
+            const content = await file.text();
+            dependencies = extractDependencies(content, path);
+          } catch (error) {
+            console.error(`❌ ${fileName}の読み取りエラー:`, error);
+          }
+        }
+
+        stats.processed++;
+        fileData.push({
+          id: fileId++,
+          name: fileName,
+          type: 'file',
+          size: (await handle.getFile()).size,
+          dependencies: dependencies,
+        });
+
+        // 進捗表示
+        if (stats.processed % 50 === 0) {
+          console.log(`⏳ ${stats.processed}ファイル処理済み...`);
+        }
+      }
+
+      console.log('📊 処理完了:', {
+        total: stats.total,
+        processed: stats.processed,
+        excluded: stats.excluded,
+        rate: `${Math.round((stats.excluded / stats.total) * 100)}%除外`,
+      });
+
+      // npm API呼び出し（packageJsonContentのnullチェック）
+      if (packageJsonContent?.dependencies) {
+        const importantPackages = [
+          'react',
+          'typescript',
+          'd3',
+          'vite',
+          'axios',
+        ];
+        const depsToFetch = Object.keys(packageJsonContent.dependencies)
+          .filter((name) => importantPackages.includes(name))
+          .slice(0, 5);
+
+        console.log('🔍 主要パッケージ情報を取得:', depsToFetch);
+
+        for (const pkgName of depsToFetch) {
+          try {
+            const info = await getPackageInfo(pkgName);
+            if (info) {
+              console.log(`📚 ${pkgName}: ${info.description}`);
+            }
+          } catch (error) {
+            console.error(`npm API エラー (${pkgName}):`, error);
+          }
+        }
+      }
+
+      setFiles(fileData);
+      console.log(`✅ ${fileData.length}個のファイルを表示`);
+    } catch (err) {
+      const error = err as Error;
+      if (error.name !== 'AbortError') {
+        setError('ディレクトリの読み込みに失敗しました: ' + error.message);
+        console.error('エラー:', error);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // ここから重要！return部分
@@ -257,14 +500,48 @@ function App() {
       ) : (
         <div style={{ textAlign: 'center', padding: '20px' }}>
           <h3>ローカルファイルを選択</h3>
-          <input
-            type='file'
-            // @ts-expect-error - webkitdirectory is not in TypeScript types
-            webkitdirectory=''
-            directory=''
-            multiple
-            onChange={handleLocalFolder}
-          />
+
+          {/* 新しいボタンを追加 */}
+          <div style={{ marginBottom: '20px' }}>
+            <button
+              onClick={handleDirectoryPicker}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                cursor: 'pointer',
+                marginBottom: '10px',
+              }}
+            >
+              🚀 フォルダを選択（高速版・Chrome/Edge推奨）
+            </button>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+              node_modules自動除外・リアルタイム更新対応
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: '10px',
+              backgroundColor: '#f3f4f6',
+              borderRadius: '8px',
+              marginBottom: '10px',
+            }}
+          >
+            <p style={{ fontSize: '14px', marginBottom: '10px' }}>
+              または従来の方法：
+            </p>
+            <input
+              type='file'
+              // @ts-expect-error - webkitdirectoryは標準のHTML属性ではないため              webkitdirectory=''
+              directory=''
+              multiple
+              onChange={handleLocalFolder}
+            />
+          </div>
         </div>
       )}
 
