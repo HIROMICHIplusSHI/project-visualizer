@@ -1,8 +1,7 @@
-// src/components/ForceGraph.tsx（依存関係の線を追加）
+// src/components/ForceGraph.tsx
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { type FileData } from './FileList';
-import Legend from './Legend';
 
 interface ForceGraphProps {
   files: FileData[];
@@ -31,7 +30,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
 
     // 親要素の幅に合わせる
     const containerWidth = svgRef.current.parentElement?.clientWidth || 800;
-    const width = Math.min(containerWidth - 40, 800); // 最大800px
+    const width = Math.min(containerWidth - 40, 800);
     const height = 600;
 
     const svg = d3
@@ -64,9 +63,10 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       .append('div')
       .style('position', 'absolute')
       .style('top', '10px')
-      .style('right', '10px')
+      .style('left', '10px')
       .style('display', 'flex')
-      .style('gap', '5px');
+      .style('gap', '5px')
+      .style('z-index', '10');
 
     controls
       .append('button')
@@ -129,7 +129,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       }
     });
 
-    // 力学シミュレーション（リンクも追加）
+    // 力学シミュレーション
     const simulation = d3
       .forceSimulation(nodes)
       .force(
@@ -138,7 +138,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
           .forceLink<D3Node, D3Link>(links)
           .id((d) => (d as D3Node).id)
           .distance(100)
-      ) // リンクの長さ
+      )
       .force('charge', d3.forceManyBody().strength(-100))
       .force('center', d3.forceCenter(width / 2, height / 2).strength(0.1))
       .force('collision', d3.forceCollide().radius(35))
@@ -166,13 +166,19 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       .attr('class', 'node')
       .style('cursor', 'pointer');
 
-    // 円を追加
+    // ディレクトリは四角形、ファイルは円として描画
     nodeGroup
-      .append('circle')
-      .attr('r', (d) => {
-        if (d.type === 'dir') return 25;
-        if (d.size && d.size > 10000) return 20;
-        return 15;
+      .append(function (d) {
+        if (d.type === 'dir') {
+          // ディレクトリは四角形
+          return document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        } else {
+          // ファイルは円
+          return document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'circle'
+          );
+        }
       })
       .attr('fill', (d) => {
         if (d.type === 'dir') return '#FFB800';
@@ -183,7 +189,19 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
         return '#666';
       })
       .attr('stroke', '#fff')
-      .attr('stroke-width', 2);
+      .attr('stroke-width', 2)
+      // 四角形の属性
+      .attr('width', (d) => (d.type === 'dir' ? 40 : null))
+      .attr('height', (d) => (d.type === 'dir' ? 40 : null))
+      .attr('x', (d) => (d.type === 'dir' ? -20 : null))
+      .attr('y', (d) => (d.type === 'dir' ? -20 : null))
+      .attr('rx', (d) => (d.type === 'dir' ? 4 : null))
+      .attr('ry', (d) => (d.type === 'dir' ? 4 : null))
+      // 円の属性
+      .attr('r', (d) => {
+        if (d.type === 'dir') return null;
+        return d.size && d.size > 10000 ? 20 : 15;
+      });
 
     // ファイル名を追加
     nodeGroup
@@ -196,61 +214,73 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       .attr('dy', '35')
       .style('user-select', 'none');
 
-    // ホバー効果（線も強調）
+    // ホバー効果
     nodeGroup
       .on('mouseenter', function (this: SVGGElement, _event, d) {
-        // 円を大きく
-        const selection = d3.select(this).select<SVGCircleElement>('circle');
-        selection
-          .transition()
-          .duration(200)
-          .attr('r', function (this: SVGCircleElement) {
-            const data = d3.select(this).datum() as D3Node;
-            const baseR = data.type === 'dir' ? 25 : 15;
-            return baseR * 1.2;
-          });
+        // 四角形または円を大きく
+        const shape = d3.select(this).select('rect, circle');
+
+        if (d.type === 'dir') {
+          // 四角形の場合
+          shape
+            .transition()
+            .duration(200)
+            .attr('width', 48)
+            .attr('height', 48)
+            .attr('x', -24)
+            .attr('y', -24);
+        } else {
+          // 円の場合
+          shape
+            .transition()
+            .duration(200)
+            .attr('r', (d.size && d.size > 10000 ? 20 : 15) * 1.2);
+        }
 
         // 関連する線を強調
         linkElements
           .style('stroke', (l) => {
-            // anyを削除
-            const link = l as D3Link; // 型アサーション
+            const link = l as D3Link;
             const sourceId =
               typeof link.source === 'object' ? link.source.id : link.source;
             const targetId =
               typeof link.target === 'object' ? link.target.id : link.target;
-
             if (sourceId === d.id || targetId === d.id) {
-              return '#ff6b6b'; // 赤く強調
+              return '#ff6b6b';
             }
             return '#999';
           })
           .style('stroke-width', (l) => {
-            // anyを削除
-            const link = l as D3Link; // 型アサーション
+            const link = l as D3Link;
             const sourceId =
               typeof link.source === 'object' ? link.source.id : link.source;
             const targetId =
               typeof link.target === 'object' ? link.target.id : link.target;
-
             if (sourceId === d.id || targetId === d.id) {
-              return 4; // 太く
+              return 4;
             }
             return 2;
           });
       })
       .on('mouseleave', function (this: SVGGElement) {
-        // 円を元に戻す
-        const selection = d3.select(this).select<SVGCircleElement>('circle');
-        selection
-          .transition()
-          .duration(200)
-          .attr('r', function (this: SVGCircleElement) {
-            const d = d3.select(this).datum() as D3Node;
-            if (d.type === 'dir') return 25;
-            if (d.size && d.size > 10000) return 20;
-            return 15;
-          });
+        // 元に戻す
+        const shape = d3.select(this).select('rect, circle');
+        const d = d3.select(this).datum() as D3Node;
+
+        if (d.type === 'dir') {
+          shape
+            .transition()
+            .duration(200)
+            .attr('width', 40)
+            .attr('height', 40)
+            .attr('x', -20)
+            .attr('y', -20);
+        } else {
+          shape
+            .transition()
+            .duration(200)
+            .attr('r', d.size && d.size > 10000 ? 20 : 15);
+        }
 
         // 線を元に戻す
         linkElements.style('stroke', '#999').style('stroke-width', 2);
@@ -284,7 +314,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
 
     // シミュレーションの更新処理
     simulation.on('tick', () => {
-      // リンクの位置更新（型を明確に）
+      // リンクの位置更新
       linkElements
         .attr('x1', (d) => {
           const link = d as D3Link;
@@ -343,8 +373,94 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
         線は依存関係を表します。ホバーで関連ファイルを強調表示
       </p>
+
+      {/* 凡例 */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          background: 'rgba(255, 255, 255, 0.95)',
+          border: '1px solid #e5e7eb',
+          borderRadius: '6px',
+          padding: '12px',
+          fontSize: '12px',
+          zIndex: 10,
+        }}
+      >
+        <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>凡例</div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '4px',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              width: '16px',
+              height: '16px',
+              background: '#FFB800',
+              borderRadius: '2px',
+            }}
+          ></span>
+          <span>フォルダ</span>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '4px',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              width: '16px',
+              height: '16px',
+              background: '#61DAFB',
+              borderRadius: '50%',
+            }}
+          ></span>
+          <span>React (.tsx)</span>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '4px',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              width: '16px',
+              height: '16px',
+              background: '#3178C6',
+              borderRadius: '50%',
+            }}
+          ></span>
+          <span>TypeScript (.ts)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              display: 'inline-block',
+              width: '16px',
+              height: '16px',
+              background: '#666',
+              borderRadius: '50%',
+            }}
+          ></span>
+          <span>その他</span>
+        </div>
+      </div>
+
       <svg ref={svgRef}></svg>
-      {/* <Legend /> 凡例を追加 */}
     </div>
   );
 };
