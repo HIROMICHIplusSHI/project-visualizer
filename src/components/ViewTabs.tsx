@@ -1,69 +1,70 @@
-// src/components/ViewTabs.tsx を更新
-import React from 'react';
-import { List, GitBranch, LayoutGrid } from 'lucide-react';
+import { List, GitBranch, Columns } from 'lucide-react';
+import { theme } from '../styles/theme';
 
 interface ViewTabsProps {
   currentView: 'list' | 'graph' | 'split';
   onViewChange: (view: 'list' | 'graph' | 'split') => void;
 }
 
-const ViewTabs: React.FC<ViewTabsProps> = ({ currentView, onViewChange }) => {
+function ViewTabs({ currentView, onViewChange }: ViewTabsProps) {
+  const containerStyle = {
+    display: 'flex',
+    gap: theme.spacing.xs,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderBottom: `1px solid ${theme.colors.border}`,
+  };
+
+  const getTabStyle = (isActive: boolean) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+    backgroundColor: isActive ? 'white' : 'transparent',
+    border: isActive
+      ? `1px solid ${theme.colors.border}`
+      : '1px solid transparent',
+    borderRadius: theme.radius.md,
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: isActive ? '600' : '400',
+    color: isActive ? theme.colors.primary : theme.colors.secondary,
+    transition: 'all 0.2s ease',
+    boxShadow: isActive ? theme.shadow.sm : 'none',
+  });
+
   const tabs = [
-    { id: 'list', icon: List, label: 'リスト', description: 'ファイル一覧' },
-    { id: 'graph', icon: GitBranch, label: 'グラフ', description: '依存関係' },
-    { id: 'split', icon: LayoutGrid, label: '分割', description: '両方表示' },
-  ] as const;
+    { id: 'list', label: 'リストビュー', icon: List },
+    { id: 'graph', label: 'グラフビュー', icon: GitBranch },
+    { id: 'split', label: '分割ビュー', icon: Columns },
+  ];
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '10px',
-        padding: '20px',
-        backgroundColor: '#f9fafb',
-        borderBottom: '1px solid #e5e7eb',
-      }}
-    >
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        return (
-          <button
-            key={tab.id}
-            onClick={() => onViewChange(tab.id)}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: currentView === tab.id ? '#3b82f6' : 'white',
-              color: currentView === tab.id ? 'white' : '#374151',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              minWidth: '100px',
-            }}
-          >
-            <Icon size={20} />
-            <div
-              style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '4px' }}
-            >
-              {tab.label}
-            </div>
-            <div
-              style={{
-                fontSize: '11px',
-                opacity: 0.8,
-                marginTop: '2px',
-              }}
-            >
-              {tab.description}
-            </div>
-          </button>
-        );
-      })}
+    <div style={containerStyle}>
+      {tabs.map(({ id, label, icon: Icon }) => (
+        <button
+          key={id}
+          style={getTabStyle(currentView === id)}
+          onClick={() => onViewChange(id as 'list' | 'graph' | 'split')}
+          onMouseEnter={(e) => {
+            if (currentView !== id) {
+              e.currentTarget.style.backgroundColor = 'white';
+              e.currentTarget.style.boxShadow = theme.shadow.sm;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (currentView !== id) {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.boxShadow = 'none';
+            }
+          }}
+        >
+          <Icon size={18} />
+          {label}
+        </button>
+      ))}
     </div>
   );
-};
+}
 
 export default ViewTabs;

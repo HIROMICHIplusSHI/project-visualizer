@@ -678,7 +678,7 @@ function App() {
       {mode === 'github' ? (
         <URLInput onSubmit={handleURLSubmit} />
       ) : (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
+        <div style={{ textAlign: 'center', padding: '40px' }}>
           <h3>ローカルファイルを選択</h3>
 
           {/* 新しいボタン */}
@@ -993,31 +993,38 @@ function App() {
           </div>
 
           {/* ⭐️ ここに追加！FileListとForceGraphの表示 */}
-          {/* リストビュー */}
-          {(viewMode === 'list' || viewMode === 'split') && (
-            <div
-              style={{
-                display: viewMode === 'split' ? 'inline-block' : 'block',
-                width: viewMode === 'split' ? '50%' : '100%',
-                verticalAlign: 'top',
-              }}
-            >
-              <FileList files={filteredFiles} />
-            </div>
-          )}
+          {/* 親要素を追加 */}
+          <div
+            style={{
+              display: viewMode === 'split' ? 'flex' : 'block',
+              width: '100%',
+            }}
+          >
+            {/* リストビュー */}
+            {(viewMode === 'list' || viewMode === 'split') && (
+              <div
+                style={{
+                  flex: viewMode === 'split' ? '1' : undefined,
+                  width: viewMode === 'split' ? '50%' : '100%',
+                  padding: '0 20px',
+                }}
+              >
+                <FileList files={filteredFiles} />
+              </div>
+            )}
 
-          {/* グラフビュー */}
-          {(viewMode === 'graph' || viewMode === 'split') && (
-            <div
-              style={{
-                display: viewMode === 'split' ? 'inline-block' : 'block',
-                width: viewMode === 'split' ? '50%' : '100%',
-                verticalAlign: 'top',
-              }}
-            >
-              <ForceGraph files={filteredFiles} />
-            </div>
-          )}
+            {/* グラフビュー */}
+            {(viewMode === 'graph' || viewMode === 'split') && (
+              <div
+                style={{
+                  flex: viewMode === 'split' ? '1' : undefined,
+                  width: viewMode === 'split' ? '50%' : '100%',
+                }}
+              >
+                <ForceGraph files={filteredFiles} />
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>

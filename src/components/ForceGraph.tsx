@@ -1,7 +1,17 @@
 // src/components/ForceGraph.tsx
+// src/components/ForceGraph.tsx
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { type FileData } from './FileList';
+import {
+  iconPaths,
+  nodeStyles,
+  linkStyles,
+  getFileType,
+  getFileColor,
+  getNodeBgColor,
+  getPerformanceSettings, // ⭐ これを追加
+} from '../constants/graphStyles';
 
 interface ForceGraphProps {
   files: FileData[];
@@ -28,9 +38,16 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     // SVGをクリア
     d3.select(svgRef.current).selectAll('*').remove();
 
+    // ⭐ パフォーマンス設定を取得
+    const perfSettings = getPerformanceSettings(files.length);
+    console.log(
+      `📊 ファイル数: ${files.length}, パフォーマンスモード:`,
+      perfSettings
+    );
+
     // 親要素の幅に合わせる
     const containerWidth = svgRef.current.parentElement?.clientWidth || 800;
-    const width = Math.min(containerWidth - 40, 800);
+    const width = Math.min(containerWidth - 40);
     const height = 600;
 
     const svg = d3
@@ -136,6 +153,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     });
 
     // 力学シミュレーション
+    // 力学シミュレーション
     const simulation = d3
       .forceSimulation(nodes)
       .force(
@@ -143,13 +161,21 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
         d3
           .forceLink<D3Node, D3Link>(links)
           .id((d) => (d as D3Node).id)
-          .distance(100)
+          .distance(perfSettings.showHoverEffects ? 100 : 80) // ⭐ 条件分岐
       )
-      .force('charge', d3.forceManyBody().strength(-100))
-      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.1))
-      .force('collision', d3.forceCollide().radius(35))
-      .force('x', d3.forceX(width / 2).strength(0.05))
-      .force('y', d3.forceY(height / 2).strength(0.05));
+      .force(
+        'charge',
+        d3.forceManyBody().strength(perfSettings.showHoverEffects ? -100 : -50)
+      )
+      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.05))
+      .force(
+        'collision',
+        d3.forceCollide().radius(perfSettings.showHoverEffects ? 35 : 30)
+      )
+      .force('x', d3.forceX(width / 2).strength(0.03))
+      .force('y', d3.forceY(height / 2).strength(0.03))
+      .alphaDecay(perfSettings.alphaDecay) // ⭐ 設定から取得
+      .velocityDecay(perfSettings.velocityDecay); // ⭐ 設定から取得
 
     // リンク（線）を描画
     const linkGroup = g.append('g').attr('class', 'links');
@@ -159,9 +185,9 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       .data(links)
       .enter()
       .append('line')
-      .attr('stroke', '#999')
-      .attr('stroke-opacity', 0.6)
-      .attr('stroke-width', 2);
+      .attr('stroke', linkStyles.default.stroke)
+      .attr('stroke-opacity', linkStyles.default.strokeOpacity)
+      .attr('stroke-width', linkStyles.default.strokeWidth);
 
     // ノードグループ
     const nodeGroup = g
@@ -172,125 +198,123 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       .attr('class', 'node')
       .style('cursor', 'pointer');
 
-    // ディレクトリは四角形、ファイルは円として描画
+    // ⭐ 背景の円を追加
     nodeGroup
-      .append(function (d) {
-        if (d.type === 'dir') {
-          // ディレクトリは四角形
-          return document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        } else {
-          // ファイルは円
-          return document.createElementNS(
-            'http://www.w3.org/2000/svg',
-            'circle'
-          );
-        }
-      })
-      .attr('fill', (d) => {
-        if (d.type === 'dir') return '#FFB800';
-        if (d.name.endsWith('.tsx')) return '#61DAFB';
-        if (d.name.endsWith('.ts')) return '#3178C6';
-        if (d.name.endsWith('.css')) return '#1572B6';
-        if (d.name.endsWith('.json')) return '#5A9E4F';
-        return '#666';
-      })
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2)
-      // 四角形の属性
-      .attr('width', (d) => (d.type === 'dir' ? 40 : null))
-      .attr('height', (d) => (d.type === 'dir' ? 40 : null))
-      .attr('x', (d) => (d.type === 'dir' ? -20 : null))
-      .attr('y', (d) => (d.type === 'dir' ? -20 : null))
-      .attr('rx', (d) => (d.type === 'dir' ? 4 : null))
-      .attr('ry', (d) => (d.type === 'dir' ? 4 : null))
-      // 円の属性
-      .attr('r', (d) => {
-        if (d.type === 'dir') return null;
-        return d.size && d.size > 10000 ? 20 : 15;
-      });
+      .append('circle')
+      .attr('r', nodeStyles.circle.radius)
+      .attr('fill', (d) => getNodeBgColor(d.name, d.type === 'dir')) // 薄い色の背景
+      .attr('stroke', (d) => getFileColor(d.name, d.type === 'dir')) // 境界線は濃い色
+      .attr('stroke-width', nodeStyles.circle.strokeWidth)
+      .style('filter', nodeStyles.circle.shadow);
 
-    // ファイル名を追加
+    // ⭐ アイコンを追加
     nodeGroup
-      .append('text')
-      .text((d) =>
-        d.name.length > 15 ? d.name.substring(0, 12) + '...' : d.name
+      .append('path')
+      .attr('d', (d) => {
+        const fileType = d.type === 'dir' ? 'folder' : getFileType(d.name);
+        return iconPaths[fileType];
+      })
+      .attr('fill', (d) => getFileColor(d.name, d.type === 'dir'))
+      .attr(
+        'transform',
+        `translate(${nodeStyles.icon.translateX}, ${nodeStyles.icon.translateY}) scale(${nodeStyles.icon.scale})`
       )
-      .attr('font-size', '10px')
-      .attr('text-anchor', 'middle')
-      .attr('dy', '35')
-      .style('user-select', 'none');
+      .style('pointer-events', 'none');
 
-    // ホバー効果
-    nodeGroup
-      .on('mouseenter', function (this: SVGGElement, _event, d) {
-        // 四角形または円を大きく
-        const shape = d3.select(this).select('rect, circle');
+    // ⭐ ファイル名を追加（パフォーマンス設定に応じて）
+    if (perfSettings.showLabels) {
+      nodeGroup
+        .append('text')
+        .text((d) =>
+          d.name.length > 15 ? d.name.substring(0, 12) + '...' : d.name
+        )
+        .attr('font-size', nodeStyles.text.fontSize)
+        .attr('text-anchor', 'middle')
+        .attr('dy', nodeStyles.text.dy)
+        .attr('fill', nodeStyles.text.color)
+        .style('user-select', 'none')
+        .style('font-weight', nodeStyles.text.fontWeight);
+    } else {
+      // ⭐ ファイル数が多い場合はツールチップで表示
+      nodeGroup.append('title').text((d) => d.name);
+    }
 
-        if (d.type === 'dir') {
-          // 四角形の場合
-          shape
+    // ⭐ ホバー効果（パフォーマンス設定に応じて）
+    if (perfSettings.showHoverEffects) {
+      nodeGroup
+        .on('mouseenter', function (this: SVGGElement, _event, d) {
+          // 背景の円を大きく
+          d3.select(this)
+            .select('circle')
             .transition()
-            .duration(200)
-            .attr('width', 48)
-            .attr('height', 48)
-            .attr('x', -24)
-            .attr('y', -24);
-        } else {
-          // 円の場合
-          shape
-            .transition()
-            .duration(200)
-            .attr('r', (d.size && d.size > 10000 ? 20 : 15) * 1.2);
-        }
+            .duration(perfSettings.animationDuration) // ⭐ 設定から取得
+            .attr('r', nodeStyles.circle.hoverRadius)
+            .attr('stroke-width', nodeStyles.circle.hoverStrokeWidth);
 
-        // 関連する線を強調
-        linkElements
-          .style('stroke', (l) => {
-            const link = l as D3Link;
-            const sourceId =
-              typeof link.source === 'object' ? link.source.id : link.source;
-            const targetId =
-              typeof link.target === 'object' ? link.target.id : link.target;
-            if (sourceId === d.id || targetId === d.id) {
-              return '#ff6b6b';
-            }
-            return '#999';
-          })
-          .style('stroke-width', (l) => {
-            const link = l as D3Link;
-            const sourceId =
-              typeof link.source === 'object' ? link.source.id : link.source;
-            const targetId =
-              typeof link.target === 'object' ? link.target.id : link.target;
-            if (sourceId === d.id || targetId === d.id) {
-              return 4;
-            }
-            return 2;
-          });
-      })
-      .on('mouseleave', function (this: SVGGElement) {
-        // 元に戻す
-        const shape = d3.select(this).select('rect, circle');
-        const d = d3.select(this).datum() as D3Node;
-
-        if (d.type === 'dir') {
-          shape
+          // アイコンも少し大きく
+          d3.select(this)
+            .select('path')
             .transition()
-            .duration(200)
-            .attr('width', 40)
-            .attr('height', 40)
-            .attr('x', -20)
-            .attr('y', -20);
-        } else {
-          shape
-            .transition()
-            .duration(200)
-            .attr('r', d.size && d.size > 10000 ? 20 : 15);
-        }
+            .duration(perfSettings.animationDuration) // ⭐ 設定から取得
+            .attr(
+              'transform',
+              `translate(${nodeStyles.icon.hoverTranslateX}, ${nodeStyles.icon.hoverTranslateY}) scale(${nodeStyles.icon.hoverScale})`
+            );
 
-        // 線を元に戻す
-        linkElements.style('stroke', '#999').style('stroke-width', 2);
+          // 関連する線を強調
+          linkElements
+            .style('stroke', (l) => {
+              const link = l as D3Link;
+              const sourceId =
+                typeof link.source === 'object' ? link.source.id : link.source;
+              const targetId =
+                typeof link.target === 'object' ? link.target.id : link.target;
+              if (sourceId === d.id || targetId === d.id) {
+                return linkStyles.hover.stroke;
+              }
+              return linkStyles.default.stroke;
+            })
+            .style('stroke-width', (l) => {
+              const link = l as D3Link;
+              const sourceId =
+                typeof link.source === 'object' ? link.source.id : link.source;
+              const targetId =
+                typeof link.target === 'object' ? link.target.id : link.target;
+              if (sourceId === d.id || targetId === d.id) {
+                return linkStyles.hover.strokeWidth;
+              }
+              return linkStyles.default.strokeWidth;
+            });
+        })
+        .on('mouseleave', function (this: SVGGElement) {
+          // 元に戻す
+          d3.select(this)
+            .select('circle')
+            .transition()
+            .duration(perfSettings.animationDuration) // ⭐ 設定から取得
+            .attr('r', nodeStyles.circle.radius)
+            .attr('stroke-width', nodeStyles.circle.strokeWidth);
+
+          d3.select(this)
+            .select('path')
+            .transition()
+            .duration(perfSettings.animationDuration) // ⭐ 設定から取得
+            .attr(
+              'transform',
+              `translate(${nodeStyles.icon.translateX}, ${nodeStyles.icon.translateY}) scale(${nodeStyles.icon.scale})`
+            );
+
+          // 線を元に戻す
+          linkElements
+            .style('stroke', linkStyles.default.stroke)
+            .style('stroke-width', linkStyles.default.strokeWidth);
+        });
+    } else {
+      // ⭐ ホバー効果なしの場合、簡単なツールチップだけ
+      nodeGroup.on('mouseenter', function (_event, d) {
+        console.log('ファイル:', d.name);
       });
+    }
 
     // クリックイベント
     nodeGroup.on('click', (_event, d) => {
@@ -361,9 +385,11 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
         padding: '20px',
         backgroundColor: '#f9fafb',
         borderRadius: '8px',
-        margin: '20px',
+        margin: '0', // ← '20px' から '0' に変更
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
         position: 'relative',
+        height: '100%', // ← 追加：高さも親要素いっぱいに
+        overflow: 'auto',
       }}
     >
       <h3
@@ -378,9 +404,13 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       </h3>
       <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
         線は依存関係を表します。ホバーで関連ファイルを強調表示
+        {files.length > 50 && (
+          <span style={{ color: '#f59e0b', marginLeft: '10px' }}>
+            ⚡ パフォーマンスモード（{files.length}ファイル）
+          </span>
+        )}
       </p>
-
-      {/* 凡例 */}
+      {/* 凡例 後で修正するかも？廃止予定
       <div
         style={{
           position: 'absolute',
@@ -464,7 +494,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
           ></span>
           <span>その他</span>
         </div>
-      </div>
+      </div> */}
 
       <svg ref={svgRef}></svg>
     </div>
