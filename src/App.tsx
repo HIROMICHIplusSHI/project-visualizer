@@ -23,6 +23,7 @@ function App() {
   const [fileFilter, setFileFilter] = useState<'all' | 'withDeps' | 'main'>(
     'withDeps'
   );
+  const [mode, setMode] = useState<'github' | 'local'>('github');
 
   // ❌ getDummyDependencies 関数を削除（もう使わない）
 
@@ -145,6 +146,64 @@ function App() {
 
   const filteredFiles = getFilteredFiles();
 
+  const handleLocalFolder = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const files = Array.from(fileList);
+      console.log(`📁 ${files.length}個のファイルを読み込み中...`);
+
+      // FileData形式に変換
+      const fileData: FileData[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const path = file.webkitRelativePath;
+
+        // .gitignoreっぽいものを除外
+        if (
+          path.includes('node_modules/') ||
+          path.includes('.git/') ||
+          path.includes('dist/') ||
+          path.includes('build/')
+        ) {
+          continue;
+        }
+
+        // ファイルかフォルダか判定
+        const parts = path.split('/');
+        const name = parts[parts.length - 1];
+
+        let dependencies: string[] = [];
+        // TypeScript/JavaScriptファイルの場合、依存関係を解析
+        if (name.match(/\.(tsx?|jsx?)$/)) {
+          const content = await file.text();
+          dependencies = extractDependencies(content);
+        }
+
+        fileData.push({
+          id: i + 1,
+          name: name,
+          type: name.includes('.') ? 'file' : 'dir',
+          size: file.size,
+          dependencies: dependencies,
+        });
+      }
+
+      setFiles(fileData);
+      console.log(`✅ ${fileData.length}個のファイルを表示`);
+    } catch (err) {
+      setError('ファイルの読み込みに失敗しました');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const clearAll = () => {
     setFiles([]);
     setRepoUrl('');
@@ -155,8 +214,59 @@ function App() {
   return (
     <div className='App'>
       <Header title='Project Visualizer' />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '10px',
+          padding: '20px',
+          backgroundColor: '#f3f4f6',
+        }}
+      >
+        <button
+          onClick={() => setMode('local')}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: mode === 'local' ? '#3b82f6' : 'white',
+            color: mode === 'local' ? 'white' : 'black',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          ローカル
+        </button>
+        <button
+          onClick={() => setMode('github')}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: mode === 'github' ? '#3b82f6' : 'white',
+            color: mode === 'github' ? 'white' : 'black',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+        >
+          GitHub
+        </button>
+      </div>
 
-      <URLInput onSubmit={handleURLSubmit} />
+      {/* モードによって表示切り替え */}
+      {mode === 'github' ? (
+        <URLInput onSubmit={handleURLSubmit} />
+      ) : (
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <h3>ローカルファイルを選択</h3>
+          <input
+            type='file'
+            // @ts-expect-error - webkitdirectory is not in TypeScript types
+            webkitdirectory=''
+            directory=''
+            multiple
+            onChange={handleLocalFolder}
+          />
+        </div>
+      )}
 
       {/* URL履歴表示 */}
       {recentUrls.length > 0 && (
