@@ -6,6 +6,7 @@ import URLInput from './components/URLInput';
 import FileList, { type FileData } from './components/FileList';
 import { fetchRepoStructure, type GitHubFile } from './services/githubApi';
 import ForceGraph from './components/ForceGraph';
+import ViewTabs from './components/ViewTabs';
 
 function App() {
   const [repoUrl, setRepoUrl] = useState<string>('');
@@ -13,6 +14,8 @@ function App() {
   const [error, setError] = useState<string>('');
   const [files, setFiles] = useState<FileData[]>([]);
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
+  // ビューモードの状態を追加
+  const [viewMode, setViewMode] = useState<'list' | 'graph' | 'split'>('list');
 
   const getDummyDependencies = (
     fileName: string,
@@ -188,11 +191,40 @@ function App() {
           ⏳ リポジトリを読み込み中...
         </div>
       )}
+      {/* ⭐ ビュー切り替えタブを追加 */}
+      {files.length > 0 && (
+        <ViewTabs currentView={viewMode} onViewChange={setViewMode} />
+      )}
+      {/* ⭐ ビューモードによって表示を切り替え */}
+      {files.length > 0 && (
+        <>
+          {/* リストビュー */}
+          {(viewMode === 'list' || viewMode === 'split') && (
+            <div
+              style={{
+                display: viewMode === 'split' ? 'inline-block' : 'block',
+                width: viewMode === 'split' ? '50%' : '100%',
+                verticalAlign: 'top',
+              }}
+            >
+              <FileList files={files} />
+            </div>
+          )}
 
-      {/* ⭐️ ここが重要！FileListを使う！ */}
-      <FileList files={files} />
-      {/* D3.js可視化を追加！ */}
-      {files.length > 0 && <ForceGraph files={files} />}
+          {/* グラフビュー */}
+          {(viewMode === 'graph' || viewMode === 'split') && (
+            <div
+              style={{
+                display: viewMode === 'split' ? 'inline-block' : 'block',
+                width: viewMode === 'split' ? '50%' : '100%',
+                verticalAlign: 'top',
+              }}
+            >
+              <ForceGraph files={files} />
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

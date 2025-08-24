@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { type FileData } from './FileList';
+import Legend from './Legend';
 
 interface ForceGraphProps {
   files: FileData[];
@@ -28,7 +29,9 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     // SVGをクリア
     d3.select(svgRef.current).selectAll('*').remove();
 
-    const width = 800;
+    // 親要素の幅に合わせる
+    const containerWidth = svgRef.current.parentElement?.clientWidth || 800;
+    const width = Math.min(containerWidth - 40, 800); // 最大800px
     const height = 600;
 
     const svg = d3
@@ -67,7 +70,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
 
     controls
       .append('button')
-      .text('🔍+')
+      .text('+')
       .style('padding', '5px 10px')
       .style('cursor', 'pointer')
       .style('border', '1px solid #d1d5db')
@@ -79,7 +82,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
 
     controls
       .append('button')
-      .text('🔍-')
+      .text('-')
       .style('padding', '5px 10px')
       .style('cursor', 'pointer')
       .style('border', '1px solid #d1d5db')
@@ -91,7 +94,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
 
     controls
       .append('button')
-      .text('🔄')
+      .html('↻')
       .style('padding', '5px 10px')
       .style('cursor', 'pointer')
       .style('border', '1px solid #d1d5db')
@@ -280,7 +283,6 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     nodeGroup.call(drag);
 
     // シミュレーションの更新処理
-    // シミュレーションの更新処理
     simulation.on('tick', () => {
       // リンクの位置更新（型を明確に）
       linkElements
@@ -328,11 +330,21 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
         position: 'relative',
       }}
     >
-      <h3>🎨 依存関係グラフ</h3>
+      <h3
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          color: '#374151',
+        }}
+      >
+        依存関係グラフ
+      </h3>
       <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
         線は依存関係を表します。ホバーで関連ファイルを強調表示
       </p>
       <svg ref={svgRef}></svg>
+      {/* <Legend /> 凡例を追加 */}
     </div>
   );
 };
