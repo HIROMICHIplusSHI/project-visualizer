@@ -1,10 +1,15 @@
-// App.tsx（完全版）
+// App.tsx（実際の依存関係解析版）
 import { useState } from 'react';
 import './App.css';
 import Header from './components/Header';
 import URLInput from './components/URLInput';
 import FileList, { type FileData } from './components/FileList';
-import { fetchRepoStructure, type GitHubFile } from './services/githubApi';
+import {
+  fetchRepoStructureRecursive, // これはそのまま
+  fetchFileContent,
+  extractDependencies,
+  type GitHubFile,
+} from './services/githubApi';
 import ForceGraph from './components/ForceGraph';
 import ViewTabs from './components/ViewTabs';
 
@@ -14,51 +19,83 @@ function App() {
   const [error, setError] = useState<string>('');
   const [files, setFiles] = useState<FileData[]>([]);
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
-  // ビューモードの状態を追加
   const [viewMode, setViewMode] = useState<'list' | 'graph' | 'split'>('list');
+  const [fileFilter, setFileFilter] = useState<'all' | 'withDeps' | 'main'>(
+    'withDeps'
+  );
 
-  const getDummyDependencies = (
-    fileName: string,
-    allFiles: GitHubFile[]
-  ): string[] => {
-    const deps: string[] = [];
+  // ❌ getDummyDependencies 関数を削除（もう使わない）
 
-    // シンプルなルール：各ファイルは次のファイルに依存
-    const currentIndex = allFiles.findIndex((f) => f.name === fileName);
-    if (currentIndex >= 0 && currentIndex < allFiles.length - 1) {
-      // 次のファイルに依存
-      deps.push(allFiles[currentIndex + 1].name);
-    }
+  // ⭐ convertGitHubToFileData を async に変更して、実際の依存関係を解析
+  // src/App.tsx の convertGitHubToFileData を修正
 
-    // 最後のファイルは最初のファイルに依存（円を作る）
-    if (currentIndex === allFiles.length - 1 && allFiles.length > 1) {
-      deps.push(allFiles[0].name);
-    }
+  const convertGitHubToFileData = async (
+    githubFiles: GitHubFile[]
+  ): Promise<FileData[]> => {
+    console.log('🔍 依存関係を解析中...');
 
-    // READMEは複数ファイルに依存
-    if (fileName === 'README.md') {
-      const tsxFiles = allFiles
-        .filter((f) => f.name.endsWith('.tsx'))
-        .slice(0, 3);
-      tsxFiles.forEach((f) => {
-        if (!deps.includes(f.name)) {
-          deps.push(f.name);
+    const fileDataPromises = githubFiles.map(async (file, index) => {
+      let dependencies: string[] = [];
+
+      if (
+        file.type === 'file' &&
+        file.download_url &&
+        (file.name.endsWith('.tsx') ||
+          file.name.endsWith('.ts') ||
+          file.name.endsWith('.jsx') ||
+          file.name.endsWith('.js'))
+      ) {
+        try {
+          const content = await fetchFileContent(file.download_url);
+          // ファイルのパスも渡すように変更
+          dependencies = extractDependencies(content, file.path);
+
+          // 依存関係のマッピングを改善
+          dependencies = dependencies.map((dep) => {
+            // フルパスでのマッチングを試みる
+            const exactMatch = githubFiles.find(
+              (f) =>
+                f.name === dep ||
+                f.path.endsWith(dep) ||
+                f.path.includes(dep.replace('.tsx', '').replace('.ts', ''))
+            );
+
+            if (exactMatch) {
+              return exactMatch.name;
+            }
+
+            // index.tsxの場合の特別処理
+            if (dep.includes('/index.')) {
+              const folderName = dep.split('/')[0];
+              const indexFile = githubFiles.find(
+                (f) =>
+                  f.path.includes(folderName) && f.name.startsWith('index.')
+              );
+              if (indexFile) {
+                return indexFile.name;
+              }
+            }
+
+            return dep;
+          });
+
+          console.log(`✅ ${file.name}: ${dependencies.length}個の依存関係`);
+        } catch (error) {
+          console.error(`❌ ${file.name} の解析失敗:`, error);
         }
-      });
-    }
+      }
 
-    console.log(`${fileName} → 依存:`, deps);
-    return deps;
-  };
+      return {
+        id: index + 1,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        dependencies: [...new Set(dependencies)], // 重複除去
+      };
+    });
 
-  const convertGitHubToFileData = (githubFiles: GitHubFile[]): FileData[] => {
-    return githubFiles.map((file, index) => ({
-      id: index + 1,
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      dependencies: getDummyDependencies(file.name, githubFiles), // ⭐️ ここを変更！
-    }));
+    const fileData = await Promise.all(fileDataPromises);
+    return fileData;
   };
 
   const handleURLSubmit = async (url: string) => {
@@ -69,8 +106,11 @@ function App() {
     setFiles([]);
 
     try {
-      const githubFiles = await fetchRepoStructure(url);
-      const fileData = convertGitHubToFileData(githubFiles);
+      // 変数名を統一する
+      const githubFiles = await fetchRepoStructureRecursive(url, '', 0, 3);
+      console.log(`取得したファイル数: ${githubFiles.length}`);
+
+      const fileData = await convertGitHubToFileData(githubFiles);
       setFiles(fileData);
 
       if (!recentUrls.includes(url)) {
@@ -83,6 +123,27 @@ function App() {
       setIsLoading(false);
     }
   };
+
+  const getFilteredFiles = () => {
+    switch (fileFilter) {
+      case 'withDeps':
+        // 依存関係があるファイルのみ
+        return files.filter(
+          (file) =>
+            (file.dependencies && file.dependencies.length > 0) ||
+            files.some((f) => f.dependencies?.includes(file.name))
+        );
+      case 'main':
+        // 主要ファイルのみ（JS/TS系）
+        return files.filter((file) =>
+          file.name.match(/\.(tsx?|jsx?|mjs|cjs)$/)
+        );
+      default:
+        return files;
+    }
+  };
+
+  const filteredFiles = getFilteredFiles();
 
   const clearAll = () => {
     setFiles([]);
@@ -193,11 +254,88 @@ function App() {
       )}
       {/* ⭐ ビュー切り替えタブを追加 */}
       {files.length > 0 && (
-        <ViewTabs currentView={viewMode} onViewChange={setViewMode} />
-      )}
-      {/* ⭐ ビューモードによって表示を切り替え */}
-      {files.length > 0 && (
         <>
+          <ViewTabs currentView={viewMode} onViewChange={setViewMode} />
+
+          {/* フィルターボタンを追加 */}
+          <div
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#f3f4f6',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              gap: '10px',
+              alignItems: 'center',
+            }}
+          >
+            <span style={{ fontSize: '14px', color: '#6b7280' }}>
+              表示フィルター:
+            </span>
+            <button
+              onClick={() => setFileFilter('all')}
+              style={{
+                padding: '6px 12px',
+                backgroundColor: fileFilter === 'all' ? '#3b82f6' : 'white',
+                color: fileFilter === 'all' ? 'white' : '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+              }}
+            >
+              全て ({files.length})
+            </button>
+            <button
+              onClick={() => setFileFilter('withDeps')}
+              style={{
+                padding: '6px 12px',
+                backgroundColor:
+                  fileFilter === 'withDeps' ? '#3b82f6' : 'white',
+                color: fileFilter === 'withDeps' ? 'white' : '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+              }}
+            >
+              依存関係あり (
+              {
+                files.filter(
+                  (f) =>
+                    (f.dependencies && f.dependencies.length > 0) ||
+                    files.some((ff) => ff.dependencies?.includes(f.name))
+                ).length
+              }
+              )
+            </button>
+            <button
+              onClick={() => setFileFilter('main')}
+              style={{
+                padding: '6px 12px',
+                backgroundColor: fileFilter === 'main' ? '#3b82f6' : 'white',
+                color: fileFilter === 'main' ? 'white' : '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '13px',
+              }}
+            >
+              主要ファイル (
+              {files.filter((f) => f.name.match(/\.(tsx?|jsx?)$/)).length})
+            </button>
+
+            <span
+              style={{
+                marginLeft: 'auto',
+                fontSize: '13px',
+                color: '#6b7280',
+              }}
+            >
+              表示中: {filteredFiles.length} / {files.length} ファイル
+            </span>
+          </div>
+
+          {/* ⭐️ ここに追加！FileListとForceGraphの表示 */}
           {/* リストビュー */}
           {(viewMode === 'list' || viewMode === 'split') && (
             <div
@@ -207,7 +345,7 @@ function App() {
                 verticalAlign: 'top',
               }}
             >
-              <FileList files={files} />
+              <FileList files={filteredFiles} />
             </div>
           )}
 
@@ -220,7 +358,7 @@ function App() {
                 verticalAlign: 'top',
               }}
             >
-              <ForceGraph files={files} />
+              <ForceGraph files={filteredFiles} />
             </div>
           )}
         </>
