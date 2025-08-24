@@ -117,8 +117,14 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     const links: D3Link[] = [];
     files.forEach((file) => {
       if (file.dependencies) {
-        file.dependencies.forEach((depName) => {
-          const targetFile = files.find((f) => f.name === depName);
+        file.dependencies.forEach((depPath) => {
+          // pathで比較するように修正
+          const targetFile = files.find(
+            (f) =>
+              f.path === depPath || // パスが完全一致
+              f.path?.endsWith(depPath) || // 部分一致
+              depPath.endsWith('/' + f.name) // ファイル名で一致
+          );
           if (targetFile) {
             links.push({
               source: file.id,

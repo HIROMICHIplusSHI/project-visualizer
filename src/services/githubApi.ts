@@ -129,15 +129,15 @@ export const fetchRepoStructureRecursive = async (
     return [];
   }
 };
-
-// import文を解析する関数（改良版）
-export const extractDependencies = (content: string): string[] => {
+// import文を解析する関数（シンプル版に戻す）
+export function extractDependencies(
+  content: string,
+  filePath: string
+): string[] {
   const dependencies: string[] = [];
-  // コメントを除去してから解析
-  // 単一行コメント（//）を削除
-  const withoutSingleLineComments = content.replace(/\/\/.*$/gm, '');
 
-  // 複数行コメント（/* */）を削除
+  // コメントを除去
+  const withoutSingleLineComments = content.replace(/\/\/.*$/gm, '');
   const withoutComments = withoutSingleLineComments.replace(
     /\/\*[\s\S]*?\*\//g,
     ''
@@ -148,38 +148,81 @@ export const extractDependencies = (content: string): string[] => {
     /import\s+(?:(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s+)?['"]([^'"]+)['"]/g;
   const requireRegex = /require\s*\(['"]([^'"]+)['"]\)/g;
 
+  // 現在のファイルのディレクトリを取得
+  const currentDir = filePath.substring(0, filePath.lastIndexOf('/'));
+
+  // import文を処理
+  const processImport = (importPath: string): string | null => {
+    // 外部パッケージは除外
+    if (!importPath.startsWith('.') && !importPath.startsWith('/')) {
+      return null;
+    }
+
+    let resolvedPath = '';
+
+    if (importPath.startsWith('./')) {
+      // 同じディレクトリからの相対パス
+      resolvedPath = currentDir + '/' + importPath.substring(2);
+    } else if (importPath.startsWith('../')) {
+      // 上位ディレクトリへの相対パス
+      const parts = currentDir.split('/').filter((p) => p !== '');
+      let tempPath = importPath;
+
+      while (tempPath.startsWith('../')) {
+        if (parts.length > 0) parts.pop();
+        tempPath = tempPath.substring(3);
+      }
+
+      resolvedPath = (parts.length > 0 ? parts.join('/') : '') + '/' + tempPath;
+    } else if (importPath.startsWith('/')) {
+      // 絶対パス（srcからの相対）
+      resolvedPath = importPath.substring(1);
+    } else {
+      // 相対パス指定なし（同じディレクトリと仮定）
+      resolvedPath = currentDir + '/' + importPath;
+    }
+
+    // 先頭のスラッシュを削除
+    if (resolvedPath.startsWith('/')) {
+      resolvedPath = resolvedPath.substring(1);
+    }
+
+    // 拡張子を補完
+    if (
+      resolvedPath &&
+      !resolvedPath.match(
+        /\.(tsx?|jsx?|css|scss|sass|less|json|svg|png|jpg|jpeg|gif)$/
+      )
+    ) {
+      // TypeScript/React系のファイルはデフォルトで.tsx
+      // その他は.jsをデフォルトに
+      if (filePath.includes('.tsx') || filePath.includes('.jsx')) {
+        resolvedPath = resolvedPath + '.tsx';
+      } else {
+        resolvedPath = resolvedPath + '.ts';
+      }
+    }
+
+    return resolvedPath;
+  };
+
   // importを抽出
   let match;
   while ((match = importRegex.exec(withoutComments)) !== null) {
-    const importPath = match[1];
-
-    // 相対パスの場合、ファイル名に変換
-    if (importPath.startsWith('.')) {
-      const cleanPath = importPath
-        .replace(/^\.\//, '')
-        .replace(/^\.\.\//, '')
-        .replace(/\.(tsx?|jsx?|css|scss)$/, '');
-
-      // ファイル名だけを取得（パスの最後の部分）
-      const fileName = cleanPath.split('/').pop() || cleanPath;
-
-      // 拡張子を推測して追加
-      if (!fileName.includes('.')) {
-        dependencies.push(fileName + '.tsx');
-      } else {
-        dependencies.push(fileName);
-      }
-    } else {
-      // node_modulesからのimport
-      dependencies.push(importPath);
+    const resolved = processImport(match[1]);
+    if (resolved) {
+      dependencies.push(resolved);
     }
   }
 
   // requireも抽出
   while ((match = requireRegex.exec(withoutComments)) !== null) {
-    dependencies.push(match[1]);
+    const resolved = processImport(match[1]);
+    if (resolved) {
+      dependencies.push(resolved);
+    }
   }
 
   // 重複を削除
   return [...new Set(dependencies)];
-};
+}

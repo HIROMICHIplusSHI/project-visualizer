@@ -49,8 +49,7 @@ function App() {
         try {
           const content = await fetchFileContent(file.download_url);
           // ファイルのパスも渡すように変更
-          dependencies = extractDependencies(content);
-          // 依存関係のマッピングを改善
+          dependencies = extractDependencies(content, file.path); // ✅ file.pathを使用
           dependencies = dependencies.map((dep) => {
             // フルパスでのマッチングを試みる
             const exactMatch = githubFiles.find(
@@ -248,7 +247,7 @@ function App() {
         if (name.match(/\.(tsx?|jsx?|mjs|cjs)$/)) {
           try {
             const content = await file.text();
-            dependencies = extractDependencies(content);
+            dependencies = extractDependencies(content, path);
             console.log(`✅ ${name}: ${dependencies.length}個の依存関係`);
           } catch (error) {
             console.error(`❌ ${name}の読み取りエラー:`, error);
@@ -359,7 +358,6 @@ function App() {
 
         // package.jsonの特別処理
         if (fileName === 'package.json' && !path.includes('/')) {
-          console.log('📦 ルートのpackage.jsonを発見！');
           const file = await handle.getFile();
           const content = await file.text();
           packageJsonContent = JSON.parse(content);
@@ -384,16 +382,8 @@ function App() {
           try {
             const file = await handle.getFile();
             const content = await file.text();
-            // ⭐ デバッグ：ファイルの先頭100文字を表示
-            if (fileName === 'App.tsx') {
-              // 編集したファイル名に変更
-              console.log(
-                `📄 ${fileName}の内容（先頭）:`,
-                content.substring(0, 200)
-              );
-            }
 
-            dependencies = extractDependencies(content);
+            dependencies = extractDependencies(content, path);
           } catch (error) {
             console.error(`❌ ${fileName}の読み取りエラー:`, error);
           }
@@ -531,7 +521,7 @@ function App() {
       }
 
       // ファイルを処理
-      for await (const { handle } of walkDirectory(currentDirHandle)) {
+      for await (const { handle, path } of walkDirectory(currentDirHandle)) {
         const fileName = handle.name;
 
         if (fileName.startsWith('.') && fileName !== '.gitignore') {
@@ -544,9 +534,7 @@ function App() {
           try {
             const file = await handle.getFile();
             const content = await file.text();
-            dependencies = extractDependencies(content);
-
-            // if (dependencies.length > 0) {
+            dependencies = extractDependencies(content, path); // if (dependencies.length > 0) {
             //   console.log(
             //     `📦 ${fileName} の依存: ${dependencies.length}個`,
             //     dependencies

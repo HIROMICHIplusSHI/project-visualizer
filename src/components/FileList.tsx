@@ -6,6 +6,7 @@ import { FileNode } from '../FileNode';
 export interface FileData {
   id: number;
   name: string;
+  path?: string;
   type?: 'file' | 'dir'; // 👈 追加
   size?: number; // 👈 追加
   dependencies?: string[];
