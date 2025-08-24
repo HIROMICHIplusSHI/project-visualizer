@@ -14,13 +14,47 @@ function App() {
   const [files, setFiles] = useState<FileData[]>([]);
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
 
+  const getDummyDependencies = (
+    fileName: string,
+    allFiles: GitHubFile[]
+  ): string[] => {
+    const deps: string[] = [];
+
+    // シンプルなルール：各ファイルは次のファイルに依存
+    const currentIndex = allFiles.findIndex((f) => f.name === fileName);
+    if (currentIndex >= 0 && currentIndex < allFiles.length - 1) {
+      // 次のファイルに依存
+      deps.push(allFiles[currentIndex + 1].name);
+    }
+
+    // 最後のファイルは最初のファイルに依存（円を作る）
+    if (currentIndex === allFiles.length - 1 && allFiles.length > 1) {
+      deps.push(allFiles[0].name);
+    }
+
+    // READMEは複数ファイルに依存
+    if (fileName === 'README.md') {
+      const tsxFiles = allFiles
+        .filter((f) => f.name.endsWith('.tsx'))
+        .slice(0, 3);
+      tsxFiles.forEach((f) => {
+        if (!deps.includes(f.name)) {
+          deps.push(f.name);
+        }
+      });
+    }
+
+    console.log(`${fileName} → 依存:`, deps);
+    return deps;
+  };
+
   const convertGitHubToFileData = (githubFiles: GitHubFile[]): FileData[] => {
     return githubFiles.map((file, index) => ({
       id: index + 1,
       name: file.name,
       type: file.type,
       size: file.size,
-      dependencies: [],
+      dependencies: getDummyDependencies(file.name, githubFiles), // ⭐️ ここを変更！
     }));
   };
 

@@ -1,4 +1,4 @@
-// src/components/ForceGraph.tsx（ズーム機能追加版）
+// src/components/ForceGraph.tsx（依存関係の線を追加）
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { type FileData } from './FileList';
@@ -14,6 +14,11 @@ interface D3Node extends d3.SimulationNodeDatum {
   size?: number;
 }
 
+interface D3Link {
+  source: number | D3Node;
+  target: number | D3Node;
+}
+
 const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -26,7 +31,6 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     const width = 800;
     const height = 600;
 
-    // SVGの設定
     const svg = d3
       .select(svgRef.current)
       .attr('width', width)
@@ -35,23 +39,23 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       .style('border-radius', '8px')
       .style('background', 'white');
 
-    // ズーム用のグループを作成（これが重要！）
+    // ズーム用のグループ
     const g = svg.append('g');
 
-    // ズーム機能の設定
+    // ズーム機能
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 4]) // 10%〜400%まで拡大縮小
+      .scaleExtent([0.1, 4])
       .on('zoom', (event) => {
         g.attr('transform', event.transform);
       });
 
-    // SVGにズーム機能を適用
     svg.call(zoom);
 
     // ズームコントロールボタン
     const parentNode = svgRef.current.parentNode;
-    if (!parentNode) return; // 親要素がなければ終了
+    if (!parentNode) return;
+
     const controls = d3
       .select(parentNode as HTMLElement)
       .append('div')
@@ -61,7 +65,6 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       .style('display', 'flex')
       .style('gap', '5px');
 
-    // ズームインボタン
     controls
       .append('button')
       .text('🔍+')
@@ -74,7 +77,6 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
         svg.transition().duration(300).call(zoom.scaleBy, 1.3);
       });
 
-    // ズームアウトボタン
     controls
       .append('button')
       .text('🔍-')
@@ -87,7 +89,6 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
         svg.transition().duration(300).call(zoom.scaleBy, 0.7);
       });
 
-    // リセットボタン
     controls
       .append('button')
       .text('🔄')
@@ -100,7 +101,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
         svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
       });
 
-    // データをD3用に変換
+    // ノードとリンクのデータ準備
     const nodes: D3Node[] = files.map((file) => ({
       ...file,
       id: file.id,
@@ -109,21 +110,57 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       size: file.size,
     }));
 
-    // 力学シミュレーション
+    // 依存関係からリンクを作成
+    const links: D3Link[] = [];
+    files.forEach((file) => {
+      if (file.dependencies) {
+        file.dependencies.forEach((depName) => {
+          const targetFile = files.find((f) => f.name === depName);
+          if (targetFile) {
+            links.push({
+              source: file.id,
+              target: targetFile.id,
+            });
+          }
+        });
+      }
+    });
+
+    // 力学シミュレーション（リンクも追加）
     const simulation = d3
       .forceSimulation(nodes)
-      .force('charge', d3.forceManyBody().strength(-50))
+      .force(
+        'link',
+        d3
+          .forceLink<D3Node, D3Link>(links)
+          .id((d) => (d as D3Node).id)
+          .distance(100)
+      ) // リンクの長さ
+      .force('charge', d3.forceManyBody().strength(-100))
       .force('center', d3.forceCenter(width / 2, height / 2).strength(0.1))
       .force('collision', d3.forceCollide().radius(35))
       .force('x', d3.forceX(width / 2).strength(0.05))
       .force('y', d3.forceY(height / 2).strength(0.05));
 
-    // ノードグループ（g要素内に作成！）
+    // リンク（線）を描画
+    const linkGroup = g.append('g').attr('class', 'links');
+
+    const linkElements = linkGroup
+      .selectAll<SVGLineElement, D3Link>('line')
+      .data(links)
+      .enter()
+      .append('line')
+      .attr('stroke', '#999')
+      .attr('stroke-opacity', 0.6)
+      .attr('stroke-width', 2);
+
+    // ノードグループ
     const nodeGroup = g
-      .selectAll<SVGGElement, D3Node>('g')
+      .selectAll<SVGGElement, D3Node>('.node')
       .data(nodes)
       .enter()
       .append('g')
+      .attr('class', 'node')
       .style('cursor', 'pointer');
 
     // 円を追加
@@ -156,20 +193,51 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       .attr('dy', '35')
       .style('user-select', 'none');
 
-    // ホバー効果
+    // ホバー効果（線も強調）
     nodeGroup
-      .on('mouseenter', function (this: SVGGElement) {
+      .on('mouseenter', function (this: SVGGElement, _event, d) {
+        // 円を大きく
         const selection = d3.select(this).select<SVGCircleElement>('circle');
         selection
           .transition()
           .duration(200)
           .attr('r', function (this: SVGCircleElement) {
-            const d = d3.select(this).datum() as D3Node;
-            const baseR = d.type === 'dir' ? 25 : 15;
+            const data = d3.select(this).datum() as D3Node;
+            const baseR = data.type === 'dir' ? 25 : 15;
             return baseR * 1.2;
+          });
+
+        // 関連する線を強調
+        linkElements
+          .style('stroke', (l) => {
+            // anyを削除
+            const link = l as D3Link; // 型アサーション
+            const sourceId =
+              typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId =
+              typeof link.target === 'object' ? link.target.id : link.target;
+
+            if (sourceId === d.id || targetId === d.id) {
+              return '#ff6b6b'; // 赤く強調
+            }
+            return '#999';
+          })
+          .style('stroke-width', (l) => {
+            // anyを削除
+            const link = l as D3Link; // 型アサーション
+            const sourceId =
+              typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId =
+              typeof link.target === 'object' ? link.target.id : link.target;
+
+            if (sourceId === d.id || targetId === d.id) {
+              return 4; // 太く
+            }
+            return 2;
           });
       })
       .on('mouseleave', function (this: SVGGElement) {
+        // 円を元に戻す
         const selection = d3.select(this).select<SVGCircleElement>('circle');
         selection
           .transition()
@@ -180,11 +248,15 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
             if (d.size && d.size > 10000) return 20;
             return 15;
           });
+
+        // 線を元に戻す
+        linkElements.style('stroke', '#999').style('stroke-width', 2);
       });
 
     // クリックイベント
     nodeGroup.on('click', (_event, d) => {
       console.log('クリックされたファイル:', d.name);
+      console.log('依存関係:', files.find((f) => f.id === d.id)?.dependencies);
     });
 
     // ドラッグ機能
@@ -208,7 +280,28 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     nodeGroup.call(drag);
 
     // シミュレーションの更新処理
+    // シミュレーションの更新処理
     simulation.on('tick', () => {
+      // リンクの位置更新（型を明確に）
+      linkElements
+        .attr('x1', (d) => {
+          const link = d as D3Link;
+          return typeof link.source === 'object' ? link.source.x! : 0;
+        })
+        .attr('y1', (d) => {
+          const link = d as D3Link;
+          return typeof link.source === 'object' ? link.source.y! : 0;
+        })
+        .attr('x2', (d) => {
+          const link = d as D3Link;
+          return typeof link.target === 'object' ? link.target.x! : 0;
+        })
+        .attr('y2', (d) => {
+          const link = d as D3Link;
+          return typeof link.target === 'object' ? link.target.y! : 0;
+        });
+
+      // ノードの位置更新（境界制限付き）
       nodes.forEach((d) => {
         d.x = Math.max(30, Math.min(width - 30, d.x!));
         d.y = Math.max(30, Math.min(height - 30, d.y!));
@@ -220,7 +313,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
     // クリーンアップ
     return () => {
       simulation.stop();
-      controls.remove(); // ボタンも削除
+      controls.remove();
     };
   }, [files]);
 
@@ -232,12 +325,12 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
         borderRadius: '8px',
         margin: '20px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        position: 'relative', // ボタン配置用
+        position: 'relative',
       }}
     >
-      <h3>🎨 力学シミュレーション可視化</h3>
+      <h3>🎨 依存関係グラフ</h3>
       <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
-        マウスホイールでズーム、ドラッグで移動、Shiftドラッグで全体移動
+        線は依存関係を表します。ホバーで関連ファイルを強調表示
       </p>
       <svg ref={svgRef}></svg>
     </div>
