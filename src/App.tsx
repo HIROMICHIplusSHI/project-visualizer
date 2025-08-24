@@ -501,7 +501,7 @@ function App() {
         <div style={{ textAlign: 'center', padding: '20px' }}>
           <h3>ローカルファイルを選択</h3>
 
-          {/* 新しいボタンを追加 */}
+          {/* 新しいボタン */}
           <div style={{ marginBottom: '20px' }}>
             <button
               onClick={handleDirectoryPicker}
@@ -523,28 +523,61 @@ function App() {
             </div>
           </div>
 
+          {/* 従来の方法（注意書き付き） */}
           <div
             style={{
-              padding: '10px',
+              padding: '15px',
               backgroundColor: '#f3f4f6',
               borderRadius: '8px',
               marginBottom: '10px',
             }}
           >
-            <p style={{ fontSize: '14px', marginBottom: '10px' }}>
-              または従来の方法：
+            <p
+              style={{
+                fontSize: '14px',
+                marginBottom: '10px',
+                fontWeight: 'bold',
+              }}
+            >
+              または従来の方法（全ブラウザ対応）：
             </p>
+
+            {/* 警告メッセージ */}
+            <div
+              style={{
+                padding: '10px',
+                backgroundColor: '#fef3c7',
+                border: '1px solid #fbbf24',
+                borderRadius: '6px',
+                marginBottom: '10px',
+              }}
+            >
+              <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>
+                ⚠️ <strong>注意：</strong>node_modulesフォルダがある場合、
+                <br />
+                すべてのファイル（1万個以上）を読み込むため動作が重くなります。
+                <br />
+                可能であれば上の高速版をご利用ください。
+              </p>
+            </div>
+
             <input
               type='file'
-              // @ts-expect-error - webkitdirectoryは標準のHTML属性ではないため              webkitdirectory=''
+              // @ts-expect-error - webkitdirectoryは標準のHTML属性ではないため
+              webkitdirectory=''
               directory=''
               multiple
               onChange={handleLocalFolder}
             />
+
+            <div
+              style={{ fontSize: '12px', color: '#6b7280', marginTop: '10px' }}
+            >
+              それでも利用する場合は、小規模なプロジェクトでお試しください
+            </div>
           </div>
         </div>
       )}
-
       {/* URL履歴表示 */}
       {recentUrls.length > 0 && (
         <div
