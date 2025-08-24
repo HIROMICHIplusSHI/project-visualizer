@@ -23,7 +23,7 @@ function App() {
   const [fileFilter, setFileFilter] = useState<'all' | 'withDeps' | 'main'>(
     'withDeps'
   );
-  const [mode, setMode] = useState<'github' | 'local'>('github');
+  const [mode, setMode] = useState<'github' | 'local'>('local');
 
   // ❌ getDummyDependencies 関数を削除（もう使わない）
 
