@@ -1,26 +1,27 @@
+// src/App.tsx
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
 import Header from './components/Header';
 import URLInput from './components/URLInput';
-import FileList, { type FileData } from './components/FileList';
-import {
-  fetchRepoStructureRecursive, // これはそのまま
-  fetchFileContent,
-  extractDependencies,
-  type GitHubFile,
-} from './services/githubApi';
 import ForceGraph from './components/ForceGraph';
 import ViewTabs from './components/ViewTabs';
+import ProjectTreeView from './components/ProjectTreeView';
+import {
+  fetchRepoStructureRecursive,
+  fetchFileContent,
+  extractDependencies,
+  type GitHubFile, // GitHubFileではなくGitHubFileを使う
+} from './services/githubApi';
 
 function App() {
   const [repoUrl, setRepoUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
-  const [files, setFiles] = useState<FileData[]>([]);
+  const [files, setFiles] = useState<GitHubFile[]>([]);
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'list' | 'graph' | 'split'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'graph' | 'split'>('split');
   const [fileFilter, setFileFilter] = useState<'all' | 'withDeps' | 'main'>(
-    'withDeps'
+    'main'
   );
   const [mode, setMode] = useState<'github' | 'local'>('local');
   const [isMonitoring, setIsMonitoring] = useState(false);
@@ -28,14 +29,14 @@ function App() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [currentDirHandle, setCurrentDirHandle] = useState<any>(null);
   const monitorIntervalRef = useRef<number | null>(null);
-  const filesRef = useRef<FileData[]>([]);
-
-  const convertGitHubToFileData = async (
+  const filesRef = useRef<GitHubFile[]>([]);
+  const [selectedFile, setSelectedFile] = useState<GitHubFile | null>(null);
+  const convertGitHubToGitHubFile = async (
     githubFiles: GitHubFile[]
-  ): Promise<FileData[]> => {
+  ): Promise<GitHubFile[]> => {
     console.log('🔍 依存関係を解析中...');
 
-    const fileDataPromises = githubFiles.map(async (file, index) => {
+    const GitHubFilePromises = githubFiles.map(async (file, index) => {
       let dependencies: string[] = [];
 
       if (
@@ -87,14 +88,15 @@ function App() {
       return {
         id: index + 1,
         name: file.name,
+        path: file.path, // ← この行を追加
         type: file.type,
         size: file.size,
-        dependencies: [...new Set(dependencies)], // 重複除去
+        dependencies: [...new Set(dependencies)],
       };
     });
 
-    const fileData = await Promise.all(fileDataPromises);
-    return fileData;
+    const GitHubFile = await Promise.all(GitHubFilePromises);
+    return GitHubFile;
   };
 
   const handleURLSubmit = async (url: string) => {
@@ -109,8 +111,8 @@ function App() {
       const githubFiles = await fetchRepoStructureRecursive(url, '', 0, 3);
       console.log(`取得したファイル数: ${githubFiles.length}`);
 
-      const fileData = await convertGitHubToFileData(githubFiles);
-      setFiles(fileData);
+      const GitHubFile = await convertGitHubToGitHubFile(githubFiles);
+      setFiles(GitHubFile);
 
       if (!recentUrls.includes(url)) {
         setRecentUrls((prev) => [url, ...prev.slice(0, 4)]);
@@ -199,8 +201,8 @@ function App() {
       let excludedCount = 0;
       let processedCount = 0;
 
-      // FileData形式に変換
-      const fileData: FileData[] = [];
+      // GitHubFile形式に変換
+      const GitHubFile: GitHubFile[] = [];
       let packageJsonContent = null;
 
       for (let i = 0; i < files.length; i++) {
@@ -255,9 +257,10 @@ function App() {
         }
 
         processedCount++;
-        fileData.push({
+        GitHubFile.push({
           id: processedCount,
           name: name,
+          path: path, // ← この行を追加
           type: name.includes('.') ? 'file' : 'dir',
           size: file.size,
           dependencies: dependencies,
@@ -272,8 +275,8 @@ function App() {
         excludeRate: `${Math.round((excludedCount / files.length) * 100)}%`,
       });
 
-      setFiles(fileData);
-      console.log(`✅ ${fileData.length}個のファイルを表示`);
+      setFiles(GitHubFile);
+      console.log(`✅ ${GitHubFile.length}個のファイルを表示`);
     } catch (err) {
       setError('ファイルの読み込みに失敗しました');
       console.error(err);
@@ -300,7 +303,7 @@ function App() {
       const dirHandle = await window.showDirectoryPicker();
       console.log(`📁 ディレクトリ選択: ${dirHandle.name}`);
 
-      const fileData: FileData[] = [];
+      const GitHubFile: GitHubFile[] = [];
       let fileId = 1;
       let packageJsonContent: Record<string, any> | null = null; // anyのままでOK（ESLintの設定次第）
 
@@ -390,9 +393,10 @@ function App() {
         }
 
         stats.processed++;
-        fileData.push({
+        GitHubFile.push({
           id: fileId++,
           name: fileName,
+          path: path, // ← この行を追加
           type: 'file',
           size: (await handle.getFile()).size,
           dependencies: dependencies,
@@ -438,10 +442,10 @@ function App() {
         }
       }
 
-      setFiles(fileData);
-      console.log(`✅ ${fileData.length}個のファイルを表示`);
+      setFiles(GitHubFile);
+      console.log(`✅ ${GitHubFile.length}個のファイルを表示`);
       setCurrentDirHandle(dirHandle);
-      filesRef.current = fileData;
+      filesRef.current = GitHubFile;
     } catch (err) {
       const error = err as Error;
       if (error.name !== 'AbortError') {
@@ -487,7 +491,7 @@ function App() {
     // console.log('🔍 ファイルチェック中...', new Date().toLocaleTimeString());
 
     try {
-      const fileData: FileData[] = [];
+      const GitHubFile: GitHubFile[] = [];
       let fileId = 1;
       let hasChanges = false;
 
@@ -545,9 +549,10 @@ function App() {
           }
         }
 
-        fileData.push({
+        GitHubFile.push({
           id: fileId++,
           name: fileName,
+          path: fileName,
           type: 'file',
           size: (await handle.getFile()).size,
           dependencies: dependencies,
@@ -559,20 +564,20 @@ function App() {
 
       if (oldFiles.length === 0) {
         // 初回は比較しない
-        filesRef.current = fileData;
+        filesRef.current = GitHubFile;
         return;
       }
 
       console.log(
-        `📊 ファイル数: 旧=${oldFiles.length}, 新=${fileData.length}`
+        `📊 ファイル数: 旧=${oldFiles.length}, 新=${GitHubFile.length}`
       );
 
-      if (fileData.length !== oldFiles.length) {
+      if (GitHubFile.length !== oldFiles.length) {
         hasChanges = true;
         console.log('❗ ファイル数が異なる');
       } else {
-        for (let i = 0; i < fileData.length; i++) {
-          const newFile = fileData[i];
+        for (let i = 0; i < GitHubFile.length; i++) {
+          const newFile = GitHubFile[i];
           const oldFile = oldFiles.find((f) => f.name === newFile.name);
 
           if (!oldFile) {
@@ -607,8 +612,8 @@ function App() {
 
       if (hasChanges) {
         console.log('✨ ファイルの変更を検出！');
-        filesRef.current = fileData;
-        setFiles(fileData);
+        filesRef.current = GitHubFile;
+        setFiles(GitHubFile);
         setLastUpdate(new Date());
       }
       // else {
@@ -621,7 +626,7 @@ function App() {
   };
 
   // 3. handleDirectoryPickerを修正（最後にcurrentDirHandleを保存）
-  // handleDirectoryPicker関数の中の最後（setFiles(fileData)の後）に追加：
+  // handleDirectoryPicker関数の中の最後（setFiles(GitHubFile)の後）に追加：
   // setCurrentDirHandle(dirHandle);
 
   // 4. コンポーネントのクリーンアップ（useEffectを追加）
@@ -633,7 +638,7 @@ function App() {
     };
   }, []);
 
-  // ここから重要！return部分
+  // return部分＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
   return (
     <div className='App'>
       <Header title='Project Visualizer' />
@@ -758,6 +763,7 @@ function App() {
           </div>
         </div>
       )}
+
       {/* URL履歴表示 */}
       {recentUrls.length > 0 && (
         <div
@@ -852,10 +858,12 @@ function App() {
           ⏳ リポジトリを読み込み中...
         </div>
       )}
-      {/* ⭐ ビュー切り替えタブを追加 */}
+
+      {/* ⭐ ファイルが読み込まれた後の表示部分 */}
       {files.length > 0 && (
         <>
           <ViewTabs currentView={viewMode} onViewChange={setViewMode} />
+
           {/* リアルタイム監視ボタン（ローカルモードの時のみ表示） */}
           {mode === 'local' && currentDirHandle && (
             <div
@@ -914,7 +922,8 @@ function App() {
               )}
             </div>
           )}
-          {/* フィルターボタンを追加 */}
+
+          {/* フィルターボタン */}
           <div
             style={{
               padding: '10px 20px',
@@ -992,36 +1001,179 @@ function App() {
             </span>
           </div>
 
-          {/* ⭐️ ここに追加！FileListとForceGraphの表示 */}
-          {/* 親要素を追加 */}
-          <div
-            style={{
-              display: viewMode === 'split' ? 'flex' : 'block',
-              width: '100%',
-            }}
-          >
+          {/* ⭐️ メインのビュー表示部分 */}
+          <div style={{ height: 'calc(100vh - 350px)' }}>
             {/* リストビュー */}
-            {(viewMode === 'list' || viewMode === 'split') && (
-              <div
-                style={{
-                  flex: viewMode === 'split' ? '1' : undefined,
-                  width: viewMode === 'split' ? '50%' : '100%',
-                  padding: '0 20px',
-                }}
-              >
-                <FileList files={filteredFiles} />
+            {viewMode === 'list' && (
+              <div style={{ display: 'flex', height: '100%' }}>
+                <ProjectTreeView
+                  files={filteredFiles}
+                  onFileSelect={setSelectedFile}
+                />
+                <div
+                  style={{ flex: 1, padding: '20px', backgroundColor: '#fff' }}
+                >
+                  {selectedFile ? (
+                    <div>
+                      <h3>📄 {selectedFile.name}</h3>
+                      <div style={{ marginTop: '20px' }}>
+                        <p>
+                          <strong>パス:</strong> {selectedFile.path}
+                        </p>
+                        <p>
+                          <strong>サイズ:</strong>{' '}
+                          {selectedFile.size
+                            ? `${selectedFile.size} bytes`
+                            : '不明'}
+                        </p>
+                        {selectedFile.dependencies &&
+                          selectedFile.dependencies.length > 0 && (
+                            <div>
+                              <p>
+                                <strong>依存関係:</strong>
+                              </p>
+                              <ul>
+                                {selectedFile.dependencies.map(
+                                  (dep: string, i: number) => (
+                                    <li key={i}>{dep}</li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                          )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        color: '#999',
+                        textAlign: 'center',
+                        marginTop: '50px',
+                      }}
+                    >
+                      ファイルを選択してください
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {/* グラフビュー */}
-            {(viewMode === 'graph' || viewMode === 'split') && (
-              <div
-                style={{
-                  flex: viewMode === 'split' ? '1' : undefined,
-                  width: viewMode === 'split' ? '50%' : '100%',
-                }}
-              >
-                <ForceGraph files={filteredFiles} />
+            {viewMode === 'graph' && <ForceGraph files={filteredFiles} />}
+
+            {/* 分割ビュー */}
+            {viewMode === 'split' && (
+              <div style={{ display: 'flex', height: '100%' }}>
+                <ProjectTreeView
+                  files={filteredFiles}
+                  onFileSelect={setSelectedFile}
+                />
+                <div style={{ flex: 1 }}>
+                  <ForceGraph files={filteredFiles} />
+                </div>
+                <div
+                  style={{
+                    width: '300px',
+                    padding: '20px',
+                    borderLeft: '1px solid #e0e0e0',
+                    backgroundColor: '#fff',
+                  }}
+                >
+                  {selectedFile ? (
+                    <div>
+                      <h4 style={{ marginBottom: '10px' }}>
+                        📄 {selectedFile.name}
+                      </h4>
+
+                      {/* ファイル情報 */}
+                      <div
+                        style={{
+                          fontSize: '12px',
+                          color: '#666',
+                          marginBottom: '15px',
+                        }}
+                      >
+                        <div>📁 {selectedFile.path}</div>
+                        <div>
+                          📊{' '}
+                          {selectedFile.size
+                            ? `${(selectedFile.size / 1024).toFixed(2)} KB`
+                            : 'サイズ不明'}
+                        </div>
+                      </div>
+
+                      {/* 依存関係の統計 */}
+                      <div
+                        style={{
+                          padding: '10px',
+                          backgroundColor: '#f0f8ff',
+                          borderRadius: '5px',
+                          marginBottom: '15px',
+                        }}
+                      >
+                        <div
+                          style={{ fontWeight: 'bold', marginBottom: '5px' }}
+                        >
+                          依存関係
+                        </div>
+                        <div style={{ fontSize: '12px' }}>
+                          📥 依存: {selectedFile.dependencies?.length || 0}{' '}
+                          ファイル
+                        </div>
+                        <div style={{ fontSize: '12px' }}>
+                          📤 被依存:{' '}
+                          {
+                            files.filter((f) =>
+                              f.dependencies?.includes(selectedFile.name)
+                            ).length
+                          }{' '}
+                          ファイル
+                        </div>
+                      </div>
+
+                      {/* 依存ファイルリスト */}
+                      {selectedFile.dependencies &&
+                        selectedFile.dependencies.length > 0 && (
+                          <div>
+                            <div
+                              style={{
+                                fontWeight: 'bold',
+                                fontSize: '12px',
+                                marginBottom: '5px',
+                              }}
+                            >
+                              このファイルが依存:
+                            </div>
+                            <ul
+                              style={{ fontSize: '12px', paddingLeft: '20px' }}
+                            >
+                              {selectedFile.dependencies.map((dep, i) => (
+                                <li
+                                  key={i}
+                                  style={{
+                                    cursor: 'pointer',
+                                    color: '#0066cc',
+                                  }}
+                                >
+                                  {dep}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                    </div>
+                  ) : (
+                    <p
+                      style={{
+                        color: '#999',
+                        fontSize: '14px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      ファイルを選択してください
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </div>

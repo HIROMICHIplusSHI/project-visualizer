@@ -3,10 +3,12 @@
 // GitHubのファイル情報の型
 export interface GitHubFile {
   name: string;
-  path: string;
+  path: string; // 必須のまま
   type: 'file' | 'dir';
   size?: number;
   download_url?: string;
+  dependencies?: string[];
+  id: number; // 必須に変更（?を削除）
 }
 
 // URLからownerとrepoを取り出す関数
