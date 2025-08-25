@@ -31,6 +31,12 @@ function App() {
   const monitorIntervalRef = useRef<number | null>(null);
   const filesRef = useRef<GitHubFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<GitHubFile | null>(null);
+  
+  // 📍 選択状態変更のハンドラー（両ビューで共通使用）
+  const handleFileSelect = (file: GitHubFile | null) => {
+    setSelectedFile(file);
+    console.log('🎯 ファイル選択:', file?.name);
+  };
   const convertGitHubToGitHubFile = async (
     githubFiles: GitHubFile[]
   ): Promise<GitHubFile[]> => {
@@ -1008,7 +1014,8 @@ function App() {
               <div style={{ display: 'flex', height: '100%' }}>
                 <ProjectTreeView
                   files={filteredFiles}
-                  onFileSelect={setSelectedFile}
+                  selectedFile={selectedFile}
+                  onFileSelect={handleFileSelect}
                 />
                 <div
                   style={{ flex: 1, padding: '20px', backgroundColor: '#fff' }}
@@ -1059,17 +1066,28 @@ function App() {
             )}
 
             {/* グラフビュー */}
-            {viewMode === 'graph' && <ForceGraph files={filteredFiles} />}
+            {viewMode === 'graph' && (
+              <ForceGraph 
+                files={filteredFiles} 
+                selectedFile={selectedFile}
+                onFileSelect={handleFileSelect}
+              />
+            )}
 
             {/* 分割ビュー */}
             {viewMode === 'split' && (
               <div style={{ display: 'flex', height: '100%' }}>
                 <ProjectTreeView
                   files={filteredFiles}
-                  onFileSelect={setSelectedFile}
+                  selectedFile={selectedFile}
+                  onFileSelect={handleFileSelect}
                 />
                 <div style={{ flex: 1 }}>
-                  <ForceGraph files={filteredFiles} />
+                  <ForceGraph 
+                    files={filteredFiles}
+                    selectedFile={selectedFile}
+                    onFileSelect={handleFileSelect}
+                  />
                 </div>
                 <div
                   style={{

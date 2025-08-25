@@ -2,7 +2,7 @@
 // src/components/ForceGraph.tsx
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import { type FileData } from './FileList';
+import { type GitHubFile } from '../services/githubApi';
 import {
   iconPaths,
   nodeStyles,
@@ -14,7 +14,9 @@ import {
 } from '../constants/graphStyles';
 
 interface ForceGraphProps {
-  files: FileData[];
+  files: GitHubFile[];
+  selectedFile?: GitHubFile | null;
+  onFileSelect?: (file: GitHubFile | null) => void;
 }
 
 interface D3Node extends d3.SimulationNodeDatum {
@@ -29,7 +31,7 @@ interface D3Link {
   target: number | D3Node;
 }
 
-const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
+const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSelect }) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -377,7 +379,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files }) => {
       simulation.stop();
       controls.remove();
     };
-  }, [files]);
+  }, [files, selectedFile]);
 
   return (
     <div

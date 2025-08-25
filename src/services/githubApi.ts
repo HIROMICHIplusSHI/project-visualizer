@@ -196,12 +196,23 @@ export function extractDependencies(
         /\.(tsx?|jsx?|css|scss|sass|less|json|svg|png|jpg|jpeg|gif)$/
       )
     ) {
-      // TypeScript/React系のファイルはデフォルトで.tsx
-      // その他は.jsをデフォルトに
-      if (filePath.includes('.tsx') || filePath.includes('.jsx')) {
-        resolvedPath = resolvedPath + '.tsx';
-      } else {
-        resolvedPath = resolvedPath + '.ts';
+      // より包括的な拡張子補完 - すべてのファイル形式に対応
+      const sourceExt = filePath.split('.').pop()?.toLowerCase();
+      
+      // ソースファイルの種類に応じて適切な拡張子を推測
+      switch (sourceExt) {
+        case 'tsx':
+        case 'jsx':
+          // Reactファイルは .ts, .tsx, .css, .scss などをimport
+          resolvedPath = resolvedPath + '.ts'; // デフォルトは .ts
+          break;
+        case 'ts':
+        case 'js':
+          // TypeScript/JSファイルは同種の拡張子
+          resolvedPath = resolvedPath + '.' + sourceExt;
+          break;
+        default:
+          resolvedPath = resolvedPath + '.ts'; // フォールバック
       }
     }
 
