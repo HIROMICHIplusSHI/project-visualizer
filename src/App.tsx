@@ -361,6 +361,10 @@ function App() {
               </button>
               <div style={{ fontSize: '12px', color: '#6b7280' }}>
                 node_modules自動除外・リアルタイム更新対応
+                <br />
+                <span style={{ color: '#059669', fontWeight: '500' }}>
+                  ※ Chrome・Edgeでのみ利用可能
+                </span>
               </div>
             </div>
 
