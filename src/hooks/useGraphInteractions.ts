@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import * as d3 from 'd3';
 import type { GitHubFile } from '../services/githubApi';
 import type { D3Node, D3Link } from './useForceSimulation';
-import { getPerformanceSettings } from '../constants/graphStyles';
+import { getPerformanceSettings, calculateImpactLevel } from '../constants/graphStyles';
 import { nodeStyles, linkStyles } from '../constants/graphStyles';
 
 interface UseGraphInteractionsProps {
@@ -217,12 +217,50 @@ export const useGraphInteractions = ({
           `translate(${nodeStyles.icon.translateX}, ${nodeStyles.icon.translateY}) scale(${nodeStyles.icon.scale})`
         );
 
-      // リンクを元に戻す
+      // リンクを元に戻す（Impact Visualizationモードを考慮）
       linkElements
-        .style('stroke', linkStyles.default.stroke)
-        .style('stroke-width', linkStyles.default.strokeWidth);
+        .style('stroke', (d) => {
+          // Impact Visualizationモードの場合は適切な色を設定
+          if (impactMode && changedFiles && changedFiles.length > 0) {
+            const link = d as D3Link;
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            const sourceFile = files.find(f => f.id === sourceId);
+            const targetFile = files.find(f => f.id === targetId);
+            
+            if (sourceFile?.path && targetFile?.path) {
+              const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
+              const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
+              
+              if (sourceLevel >= 0 || targetLevel >= 0) {
+                return linkStyles.impact.stroke; // Impact色を維持
+              }
+            }
+          }
+          return linkStyles.default.stroke;
+        })
+        .style('stroke-width', (d) => {
+          // Impact Visualizationモードの場合は適切な太さを設定
+          if (impactMode && changedFiles && changedFiles.length > 0) {
+            const link = d as D3Link;
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            const sourceFile = files.find(f => f.id === sourceId);
+            const targetFile = files.find(f => f.id === targetId);
+            
+            if (sourceFile?.path && targetFile?.path) {
+              const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
+              const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
+              
+              if (sourceLevel >= 0 || targetLevel >= 0) {
+                return linkStyles.impact.strokeWidth; // Impact線の太さを維持
+              }
+            }
+          }
+          return linkStyles.default.strokeWidth;
+        });
     };
-  }, [perfSettings, files]);
+  }, [perfSettings, files, impactMode, changedFiles]);
 
   return {
     createZoomBehavior,

@@ -189,6 +189,51 @@ export const renderNodeLabels = (
 };
 
 /**
+ * リンクのハイライト更新
+ */
+export const updateSelectedLinkHighlight = (
+  linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
+  files: GitHubFile[],
+  impactMode?: boolean,
+  changedFiles?: string[],
+  dependencyMap?: Record<string, string[]>
+) => {
+  linkElements
+    .style('stroke', (d) => {
+      if (impactMode && changedFiles && changedFiles.length > 0 && dependencyMap) {
+        const sourceFile = files.find(f => f.id === (typeof d.source === 'object' ? d.source.id : d.source));
+        const targetFile = files.find(f => f.id === (typeof d.target === 'object' ? d.target.id : d.target));
+        
+        if (sourceFile?.path && targetFile?.path) {
+          const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
+          const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
+          
+          if (sourceLevel >= 0 || targetLevel >= 0) {
+            return linkStyles.impact.stroke;
+          }
+        }
+      }
+      return linkStyles.default.stroke;
+    })
+    .style('stroke-width', (d) => {
+      if (impactMode && changedFiles && changedFiles.length > 0 && dependencyMap) {
+        const sourceFile = files.find(f => f.id === (typeof d.source === 'object' ? d.source.id : d.source));
+        const targetFile = files.find(f => f.id === (typeof d.target === 'object' ? d.target.id : d.target));
+        
+        if (sourceFile?.path && targetFile?.path) {
+          const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
+          const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
+          
+          if (sourceLevel >= 0 || targetLevel >= 0) {
+            return linkStyles.impact.strokeWidth;
+          }
+        }
+      }
+      return linkStyles.default.strokeWidth;
+    });
+};
+
+/**
  * 選択されたノードのハイライト更新
  */
 export const updateSelectedNodeHighlight = (

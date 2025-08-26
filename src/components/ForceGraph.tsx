@@ -17,7 +17,8 @@ import {
   renderNodeCircles,
   renderNodeIcons,
   renderNodeLabels,
-  updateSelectedNodeHighlight
+  updateSelectedNodeHighlight,
+  updateSelectedLinkHighlight
 } from '../utils/nodeRenderer';
 
 // スタイル・設定
@@ -168,6 +169,15 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
     updateSelectedNodeHighlight(
       nodeGroup,
       selectedFile,
+      files,
+      impactMode,
+      changedFiles,
+      dependencyMap
+    );
+
+    // リンクの強調表示
+    updateSelectedLinkHighlight(
+      linkElements,
       files,
       impactMode,
       changedFiles,
