@@ -9,6 +9,7 @@ export interface GitHubFile {
   download_url?: string;
   dependencies?: string[];
   id: number; // 必須に変更（?を削除）
+  content?: string; // ファイル内容
 }
 
 // URLからownerとrepoを取り出す関数

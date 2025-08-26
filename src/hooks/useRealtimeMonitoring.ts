@@ -12,7 +12,6 @@ export const useRealtimeMonitoring = () => {
     let fileId = 1;
 
     const processDirectory = async (dirHandle: any, basePath = '') => {
-      // @ts-expect-error - values() method exists on directory handles
       for await (const [name, handle] of dirHandle.entries()) {
         const fullPath = basePath ? `${basePath}/${name}` : name;
         
@@ -42,6 +41,7 @@ export const useRealtimeMonitoring = () => {
                 id: fileId++,
                 name,
                 path: fullPath,
+                type: 'file' as const,
                 content,
                 size: file.size,
                 dependencies,

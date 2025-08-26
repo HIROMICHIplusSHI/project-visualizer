@@ -168,6 +168,7 @@ export const useFileManagement = () => {
               id: processedCount,
               name: file.name,
               path: relativePath,
+              type: 'file' as const,
               content,
               size: file.size,
               dependencies,
@@ -220,7 +221,6 @@ export const useFileManagement = () => {
       };
 
       const processDirectory = async (dirHandle: any, basePath = '') => {
-        // @ts-expect-error - values() method exists on directory handles
         for await (const [name, handle] of dirHandle.entries()) {
           const fullPath = basePath ? `${basePath}/${name}` : name;
           
@@ -254,6 +254,7 @@ export const useFileManagement = () => {
                   id: fileId++,
                   name,
                   path: fullPath,
+                  type: 'file' as const,
                   content,
                   size: file.size,
                   dependencies,

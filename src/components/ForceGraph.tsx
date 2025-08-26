@@ -48,10 +48,31 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
     // ファイル数とパフォーマンス設定の確認
     // console.log(`ファイル数: ${files.length}, パフォーマンスモード:`, perfSettings);
 
-    // 親要素の幅に合わせる
+    // ファイル数に応じた動的サイズ計算
     const containerWidth = svgRef.current.parentElement?.clientWidth || 800;
-    const width = Math.min(containerWidth - 40);
-    const height = 600;
+    
+    // ファイル数に基づくサイズ計算
+    const calculateCanvasSize = (fileCount: number) => {
+      const minWidth = 600;
+      const maxWidth = Math.max(containerWidth - 40, 1200);
+      const minHeight = 400;
+      const maxHeight = 1200;
+      
+      // ファイル数による基本サイズ計算（平方根を使用してバランスよく）
+      const sizeFactor = Math.sqrt(fileCount / 10); // 10ファイル = 基準サイズ
+      
+      const calculatedWidth = Math.min(maxWidth, Math.max(minWidth, minWidth + sizeFactor * 200));
+      const calculatedHeight = Math.min(maxHeight, Math.max(minHeight, minHeight + sizeFactor * 150));
+      
+      return {
+        width: calculatedWidth,
+        height: calculatedHeight
+      };
+    };
+    
+    const { width, height } = calculateCanvasSize(files.length);
+    
+    console.log(`📐 Canvas size: ${width}x${height} for ${files.length} files`);
 
     const svg = d3
       .select(svgRef.current)
@@ -124,6 +145,27 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
         svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
       });
 
+    // ノードサイズ計算（依存関係数に基づく）
+    const calculateNodeSize = (file: GitHubFile) => {
+      const baseSizeSmall = 18;  // デフォルトサイズを小さく
+      const baseSizeLarge = 32;  // 依存ファイルの最大サイズ
+      
+      const dependencyCount = file.dependencies?.length || 0;
+      const referencedCount = files.filter(f => 
+        f.dependencies?.some(dep => 
+          findFileByPath(dep)?.id === file.id
+        )
+      ).length;
+      
+      const totalConnections = dependencyCount + referencedCount;
+      
+      if (totalConnections === 0) return baseSizeSmall;
+      
+      // 依存関係が多いほど大きく（最大32px）
+      const sizeMultiplier = Math.min(totalConnections / 3, 1.8);
+      return Math.max(baseSizeSmall, Math.min(baseSizeLarge, baseSizeSmall * sizeMultiplier));
+    };
+
     // ノードとリンクのデータ準備
     const nodes: D3Node[] = files.map((file) => ({
       ...file,
@@ -133,18 +175,35 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
       size: file.size,
     }));
 
-    // 依存関係からリンクを作成
+    // 柔軟なファイル検索関数（拡張子の違いを許容）
+    const findFileByPath = (targetPath: string) => {
+      // まず完全一致を試す
+      let found = files.find(f => f.path === targetPath);
+      if (found) return found;
+      
+      // 部分一致を試す
+      found = files.find(f => 
+        f.path?.endsWith(targetPath) || 
+        targetPath.endsWith('/' + f.name)
+      );
+      if (found) return found;
+      
+      // 拡張子なしでベース名を取得して一致を試す
+      const baseName = targetPath.replace(/\.[^.]*$/, '');
+      found = files.find(f => {
+        const fileBaseName = f.path.replace(/\.[^.]*$/, '');
+        return fileBaseName === baseName;
+      });
+      
+      return found;
+    };
+
+    // 依存関係からリンクを作成（柔軟マッチング使用）
     const links: D3Link[] = [];
     files.forEach((file) => {
       if (file.dependencies) {
         file.dependencies.forEach((depPath) => {
-          // pathで比較するように修正
-          const targetFile = files.find(
-            (f) =>
-              f.path === depPath || // パスが完全一致
-              f.path?.endsWith(depPath) || // 部分一致
-              depPath.endsWith('/' + f.name) // ファイル名で一致
-          );
+          const targetFile = findFileByPath(depPath);
           if (targetFile) {
             links.push({
               source: file.id,
@@ -173,23 +232,6 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
           
           if (file.path && hasMatchingDependency) {
             // 柔軟なファイル検索（拡張子の違いを許容）
-            const findFileByPath = (targetPath: string) => {
-              // まず完全一致を試す
-              let found = files.find(f => f.path === targetPath);
-              if (found) return found;
-              
-              // 拡張子なしでベース名を取得
-              const baseName = targetPath.replace(/\.[^.]*$/, '');
-              
-              // ベース名が一致するファイルを探す
-              found = files.find(f => {
-                const fileBaseName = f.path.replace(/\.[^.]*$/, '');
-                return fileBaseName === baseName;
-              });
-              
-              return found;
-            };
-            
             const sourceFile = findFileByPath(changedFile);
             if (sourceFile) {
               // 既存のリンクと重複しないようチェック
@@ -221,6 +263,87 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
     });
 
 
+    // ハブファイル（重要ファイル）の特定
+    const hubFiles = nodes.filter(node => {
+      const targetFile = files.find(f => f.id === node.id);
+      if (!targetFile) return false;
+      const nodeSize = calculateNodeSize(targetFile);
+      return nodeSize > 24; // デフォルトより大きいファイル = ハブファイル
+    });
+
+    // カスタム配置力: ハブファイルを中心に、依存ファイルを円状配置
+    const customLayoutForce = (alpha: number) => {
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      nodes.forEach((node) => {
+        const targetFile = files.find(f => f.id === node.id);
+        if (!targetFile) return;
+        
+        const nodeSize = calculateNodeSize(targetFile);
+        const isHub = nodeSize > 24;
+        
+        if (isHub) {
+          // ハブファイルは中央付近に配置（強い向心力）
+          const dx = centerX - (node.x || 0);
+          const dy = centerY - (node.y || 0);
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const strength = distance > 0 ? (0.1 * alpha) : 0;
+          
+          node.vx = (node.vx || 0) + dx * strength;
+          node.vy = (node.vy || 0) + dy * strength;
+        } else {
+          // 依存ファイルは最も近いハブファイルの周りに円状配置
+          let closestHub = null;
+          let minDistance = Infinity;
+          
+          // 直接依存関係があるハブファイルを優先して探す
+          if (targetFile.dependencies) {
+            for (const dep of targetFile.dependencies) {
+              const depFile = findFileByPath(dep);
+              if (depFile) {
+                const hubNode = nodes.find(n => n.id === depFile.id);
+                const hubSize = calculateNodeSize(depFile);
+                if (hubNode && hubSize > 24) {
+                  closestHub = hubNode;
+                  break;
+                }
+              }
+            }
+          }
+          
+          // 直接依存がない場合、最も近いハブファイルを探す
+          if (!closestHub) {
+            hubFiles.forEach((hub) => {
+              const dx = (hub.x || 0) - (node.x || 0);
+              const dy = (hub.y || 0) - (node.y || 0);
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              if (distance < minDistance) {
+                minDistance = distance;
+                closestHub = hub;
+              }
+            });
+          }
+          
+          if (closestHub) {
+            // ハブから適切な距離（120-180px）に配置
+            const targetDistance = 150 + Math.random() * 80; // 150-230px に拡大
+            const dx = (node.x || 0) - (closestHub.x || 0);
+            const dy = (node.y || 0) - (closestHub.y || 0);
+            const currentDistance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (currentDistance > 0) {
+              const force = (currentDistance - targetDistance) / currentDistance;
+              const strength = 0.05 * alpha;
+              
+              node.vx = (node.vx || 0) - dx * force * strength;
+              node.vy = (node.vy || 0) - dy * force * strength;
+            }
+          }
+        }
+      });
+    };
+
     // 力学シミュレーションの設定とノード間の力の定義
     const simulation = d3
       .forceSimulation(nodes)
@@ -229,19 +352,43 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
         d3
           .forceLink<D3Node, D3Link>(links)
           .id((d) => (d as D3Node).id)
-          .distance(perfSettings.showHoverEffects ? 100 : 80) // パフォーマンス設定に応じた距離調整
+          .distance((d: D3Link) => {
+            // 依存関係の強さに基づく距離調整
+            const source = d.source as D3Node;
+            const target = d.target as D3Node;
+            const sourceFile = files.find(f => f.id === source.id);
+            const targetFile = files.find(f => f.id === target.id);
+            
+            if (sourceFile && targetFile) {
+              const sourceSize = calculateNodeSize(sourceFile);
+              const targetSize = calculateNodeSize(targetFile);
+              // ファイル名表示のためにより大きな距離を確保
+              return Math.max(120, (sourceSize + targetSize) * 3 + 60);
+            }
+            return 120; // デフォルト距離を大きく
+          })
       )
       .force(
         'charge',
-        d3.forceManyBody().strength(perfSettings.showHoverEffects ? -100 : -50)
+        d3.forceManyBody().strength((d) => {
+          // ハブファイル同士は強い反発力
+          const targetFile = files.find(f => f.id === (d as D3Node).id);
+          const nodeSize = targetFile ? calculateNodeSize(targetFile) : 24;
+          const baseStrength = perfSettings.showHoverEffects ? -100 : -50;
+          return baseStrength * (nodeSize > 24 ? 2 : 1); // ハブファイルは2倍の反発力
+        })
       )
-      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.05))
+      .force('center', d3.forceCenter(width / 2, height / 2).strength(0.02))
       .force(
         'collision',
-        d3.forceCollide().radius(perfSettings.showHoverEffects ? 35 : 30)
+        d3.forceCollide().radius((d) => {
+          const targetFile = files.find(f => f.id === (d as D3Node).id);
+          const nodeSize = targetFile ? calculateNodeSize(targetFile) : 24;
+          // ファイル名表示スペースを考慮して余白を大幅に増加
+          return nodeSize + (perfSettings.showHoverEffects ? 25 : 20);
+        })
       )
-      .force('x', d3.forceX(width / 2).strength(0.03))
-      .force('y', d3.forceY(height / 2).strength(0.03))
+      .force('customLayout', customLayoutForce)
       .alphaDecay(perfSettings.alphaDecay) // シミュレーション収束速度の設定
       .velocityDecay(perfSettings.velocityDecay); // ノードの速度減衰設定
 
@@ -316,11 +463,14 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
     // ノードの背景円を描画
     nodeGroup
       .append('circle')
-      .attr('r', nodeStyles.circle.radius)
+      .attr('r', (d) => {
+        const targetFile = files.find(f => f.id === d.id);
+        return targetFile ? calculateNodeSize(targetFile) : nodeStyles.circle.radius;
+      })
       .attr('fill', (d) => {
         // Impact visualizationモードの実装
         if (impactMode && changedFiles && changedFiles.length > 0) {
-          const targetFile = files.find(f => f.id === d.id);
+          const targetFile = files.find(f => f.id === (d as D3Node).id);
           if (targetFile?.path) {
             const impactLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
             if (impactLevel >= 0) {
@@ -333,7 +483,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
       .attr('stroke', (d) => {
         // Impact visualizationモードの境界色
         if (impactMode && changedFiles && changedFiles.length > 0) {
-          const targetFile = files.find(f => f.id === d.id);
+          const targetFile = files.find(f => f.id === (d as D3Node).id);
           if (targetFile?.path) {
             const impactLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
             if (impactLevel >= 0) {
@@ -493,7 +643,10 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
             .select('circle')
             .transition()
             .duration(perfSettings.animationDuration) // アニメーション速度設定
-            .attr('r', nodeStyles.circle.radius)
+            .attr('r', (d) => {
+              const targetFile = files.find(f => f.id === (d as D3Node).id);
+              return targetFile ? calculateNodeSize(targetFile) : nodeStyles.circle.radius;
+            })
             .attr('stroke-width', nodeStyles.circle.strokeWidth);
 
           d3.select(this)
@@ -627,7 +780,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
         .attr('stroke', (d) => {
           // Impact visualizationが有効な場合は、それを優先
           if (impactMode && changedFiles && changedFiles.length > 0) {
-            const targetFile = files.find(f => f.id === d.id);
+            const targetFile = files.find(f => f.id === (d as D3Node).id);
             if (targetFile?.path) {
               const impactLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
               if (impactLevel >= 0) {
@@ -653,7 +806,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
       simulation.stop();
       controls.remove();
     };
-  }, [files, selectedFile]);
+  }, [files, selectedFile, changedFiles, impactMode, onFileSelect]);
 
   return (
     <div
@@ -661,13 +814,26 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
         padding: '20px',
         backgroundColor: '#f9fafb',
         borderRadius: '8px',
-        margin: '0', // ← '20px' から '0' に変更
+        margin: '0',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
         position: 'relative',
-        height: '100%', // ← 追加：高さも親要素いっぱいに
-        overflow: 'auto',
+        height: '100%',
+        overflow: 'auto', // スクロール可能
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
+      {/* SVG コンテナ - 動的サイズ対応 */}
+      <div
+        style={{
+          width: '100%',
+          height: 'fit-content',
+          overflow: 'auto', // 大きなキャンバス用のスクロール
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          backgroundColor: 'white',
+        }}
+      >
       <h3
         style={{
           display: 'flex',
@@ -772,7 +938,29 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
         </div>
       </div> */}
 
-      <svg ref={svgRef}></svg>
+        <svg ref={svgRef}></svg>
+      </div>
+      
+      {/* ヘッダー情報 */}
+      <h3
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          color: '#374151',
+          margin: '16px 0 8px 0',
+        }}
+      >
+        依存関係グラフ
+      </h3>
+      <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
+        線は依存関係を表します。ホバーで関連ファイルを強調表示
+        {files.length > 50 && (
+          <span style={{ color: '#f59e0b', marginLeft: '10px' }}>
+            ⚡ パフォーマンスモード（{files.length}ファイル）
+          </span>
+        )}
+      </p>
     </div>
   );
 };
