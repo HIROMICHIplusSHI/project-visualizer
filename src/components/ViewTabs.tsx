@@ -4,12 +4,24 @@ import { theme } from '../styles/theme';
 interface ViewTabsProps {
   currentView: 'list' | 'graph' | 'split';
   onViewChange: (view: 'list' | 'graph' | 'split') => void;
+  // リアルタイム監視関連のprops
+  showRealtimeMonitor?: boolean;
+  isMonitoring?: boolean;
+  onToggleMonitoring?: () => void;
 }
 
-function ViewTabs({ currentView, onViewChange }: ViewTabsProps) {
+function ViewTabs({ 
+  currentView, 
+  onViewChange, 
+  showRealtimeMonitor = false,
+  isMonitoring = false,
+  onToggleMonitoring 
+}: ViewTabsProps) {
   // タブコンテナのスタイル設定
   const containerStyle = {
     display: 'flex',
+    justifyContent: 'space-between', // タブとボタンを両端に配置
+    alignItems: 'center',
     gap: theme.spacing.xs,
     padding: theme.spacing.md,
     backgroundColor: theme.colors.surface,
@@ -52,7 +64,8 @@ function ViewTabs({ currentView, onViewChange }: ViewTabsProps) {
 
   return (
     <div role="tablist" style={containerStyle}>
-      {tabs.map(({ id, label, icon: Icon }) => (
+      <div style={{ display: 'flex', gap: theme.spacing.xs }}>
+        {tabs.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
           role="tab"
@@ -78,7 +91,33 @@ function ViewTabs({ currentView, onViewChange }: ViewTabsProps) {
           <Icon size={18} />
           {label}
         </button>
-      ))}
+        ))}
+      </div>
+      
+      {/* リアルタイム監視ボタン */}
+      {showRealtimeMonitor && onToggleMonitoring && (
+        <button
+          onClick={onToggleMonitoring}
+          style={{
+            padding: '6px 12px',
+            backgroundColor: isMonitoring ? '#ef4444' : '#10b981',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          {isMonitoring ? (
+            <>⏸ リアルタイム更新</>
+          ) : (
+            <>🔄 リアルタイム更新</>
+          )}
+        </button>
+      )}
     </div>
   );
 }

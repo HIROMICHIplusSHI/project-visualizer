@@ -1,11 +1,12 @@
-import { GitBranch, HelpCircle, Github } from 'lucide-react';
+import { GitBranch, FolderPlus } from 'lucide-react';
 import { theme } from '../styles/theme';
 
 interface HeaderProps {
   title: string;
+  onNewProject?: () => void;
 }
 
-function Header({ title }: HeaderProps) {
+function Header({ title, onNewProject }: HeaderProps) {
   const headerStyle = {
     background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.secondary} 100%)`,
     borderBottom: `1px solid ${theme.colors.border}`,
@@ -62,7 +63,12 @@ function Header({ title }: HeaderProps) {
         </div>
         <nav style={navStyle}>
           <button
-            style={buttonStyle}
+            style={{
+              ...buttonStyle,
+              gap: theme.spacing.sm,
+              padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+            }}
+            onClick={onNewProject || (() => {})}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
               e.currentTarget.style.transform = 'translateY(-1px)';
@@ -71,23 +77,12 @@ function Header({ title }: HeaderProps) {
               e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
-            title='GitHubで見る'
+            title='新しいプロジェクト'
           >
-            <Github size={20} />
-          </button>
-          <button
-            style={buttonStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-            title='ヘルプ'
-          >
-            <HelpCircle size={20} />
+            <FolderPlus size={20} />
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>
+              新しいプロジェクト
+            </span>
           </button>
         </nav>
       </div>
