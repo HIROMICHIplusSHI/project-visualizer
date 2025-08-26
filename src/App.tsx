@@ -805,9 +805,10 @@ function App() {
                         </div>
                       </div>
 
-                      {/* 依存ファイルリスト */}
+                      {/* 依存ファイルリスト - TSXファイルでは無効化 */}
                       {selectedFile.dependencies &&
-                        selectedFile.dependencies.length > 0 && (
+                        selectedFile.dependencies.length > 0 &&
+                        !selectedFile.name.endsWith('.tsx') && (
                           <div>
                             <div
                               style={{
@@ -835,6 +836,24 @@ function App() {
                             </ul>
                           </div>
                         )}
+
+                      {/* TSXファイル用の注意メッセージ */}
+                      {selectedFile.name.endsWith('.tsx') && (
+                        <div
+                          style={{
+                            padding: '10px',
+                            backgroundColor: '#fff3cd',
+                            border: '1px solid #ffeaa7',
+                            borderRadius: '5px',
+                            marginTop: '10px',
+                          }}
+                        >
+                          <div style={{ fontSize: '12px', color: '#856404' }}>
+                            📝 TSXファイルの依存関係表示機能は開発中のため、
+                            一時的に無効化されています
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <p
