@@ -52,6 +52,11 @@ export const linkStyles = {
     stroke: theme.colors.accent,
     strokeWidth: 3,
   },
+  impact: {
+    stroke: '#f97316', // オレンジ色で影響範囲を表示
+    strokeOpacity: 0.9,
+    strokeWidth: 2.5,
+  },
 };
 
 // ファイルタイプの判定
@@ -65,7 +70,15 @@ export const getFileType = (fileName: string): keyof typeof iconPaths => {
 };
 
 // ファイルタイプごとの色（アイコンの色）
-export const getFileColor = (fileName: string, isDir: boolean): string => {
+export const getFileColor = (fileName: string, isDir: boolean, impactLevel?: number): string => {
+  // Impact visualizationの場合の境界色
+  if (impactLevel !== undefined) {
+    if (impactLevel === 0) return '#dc2626'; // 変更されたファイル（赤）
+    if (impactLevel === 1) return '#ea580c'; // 直接影響（オレンジ）
+    if (impactLevel === 2) return '#d97706'; // 間接影響（アンバー）
+    if (impactLevel >= 3) return '#9ca3af'; // 遠い影響（グレー）
+  }
+
   if (isDir) return '#f59e0b'; // アンバー（フォルダ）
 
   const fileType = getFileType(fileName);
@@ -83,9 +96,18 @@ export const getFileColor = (fileName: string, isDir: boolean): string => {
 };
 
 // 背景色を取得する関数（薄い色）
-export const getNodeBgColor = (fileName: string, isDir: boolean): string => {
+export const getNodeBgColor = (fileName: string, isDir: boolean, impactLevel?: number): string => {
   const color = getFileColor(fileName, isDir);
-  // 色を薄くする
+  
+  // Impact visualizationの場合の色分け
+  if (impactLevel !== undefined) {
+    if (impactLevel === 0) return '#fee2e2'; // 変更されたファイル（赤系）
+    if (impactLevel === 1) return '#fed7aa'; // 直接影響（オレンジ系）  
+    if (impactLevel === 2) return '#fef3c7'; // 間接影響（黄色系）
+    if (impactLevel >= 3) return '#f3f4f6'; // 遠い影響（グレー系）
+  }
+  
+  // 通常の色を薄くする
   const colorMap: Record<string, string> = {
     '#f59e0b': '#fef3c7', // アンバー → 薄いアンバー
     '#06b6d4': '#e0f2fe', // シアン → 薄いシアン
@@ -103,6 +125,76 @@ export const getNodeBgColor = (fileName: string, isDir: boolean): string => {
 export const animations = {
   duration: 200,
   ease: 'cubic-bezier(0.4, 0, 0.2, 1)',
+};
+
+// Impact visualization用のユーティリティ関数
+export const calculateImpactLevel = (
+  changedFiles: string[],
+  targetFile: string,
+  dependencies: Record<string, string[]>
+): number => {
+  // 変更されたファイル自体
+  if (changedFiles.includes(targetFile)) {
+    return 0;
+  }
+
+  // 逆依存関係マップを作成（どのファイルがtargetFileを使用しているか）
+  const reverseDeps: Record<string, string[]> = {};
+  for (const [file, deps] of Object.entries(dependencies)) {
+    for (const dep of deps) {
+      if (!reverseDeps[dep]) {
+        reverseDeps[dep] = [];
+      }
+      reverseDeps[dep].push(file);
+    }
+  }
+
+  // targetFileが変更されたファイルを直接使用している場合
+  for (const changedFile of changedFiles) {
+    const deps = dependencies[targetFile] || [];
+    if (deps.includes(changedFile)) {
+      return 1;
+    }
+  }
+
+  // 間接的な依存関係をチェック（2段階まで）
+  let minLevel = Infinity;
+  for (const changedFile of changedFiles) {
+    const level = findDependencyPath(targetFile, changedFile, dependencies, 0, new Set());
+    if (level !== -1) {
+      minLevel = Math.min(minLevel, level + 1); // +1 because we're checking if targetFile depends on changedFile
+    }
+  }
+
+  return minLevel === Infinity ? -1 : minLevel;
+};
+
+// 依存関係のパスを探索する再帰関数
+const findDependencyPath = (
+  from: string,
+  to: string,
+  dependencies: Record<string, string[]>,
+  depth: number,
+  visited: Set<string>
+): number => {
+  if (depth > 3) return -1; // 最大3段階まで
+  if (visited.has(from)) return -1; // 循環参照回避
+
+  visited.add(from);
+  const deps = dependencies[from] || [];
+
+  if (deps.includes(to)) {
+    return depth + 1;
+  }
+
+  for (const dep of deps) {
+    const result = findDependencyPath(dep, to, dependencies, depth + 1, new Set(visited));
+    if (result !== -1) {
+      return result;
+    }
+  }
+
+  return -1;
 };
 
 // src/constants/graphStyles.ts

@@ -137,6 +137,15 @@ export function extractDependencies(
   filePath: string
 ): string[] {
   const dependencies: string[] = [];
+  
+  // デバッグ用：TSファイルやCSSファイルの場合もログ出力
+  if (filePath.includes('App.tsx') || filePath.includes('main.tsx') || 
+      filePath.endsWith('.ts') || filePath.endsWith('.css') || 
+      filePath.endsWith('.scss') || filePath.endsWith('.sass')) {
+    console.log(`=== ${filePath} 依存関係解析 ===`);
+    console.log('File path:', filePath);
+    console.log('File extension:', filePath.split('.').pop());
+  }
 
   // コメントを除去
   const withoutSingleLineComments = content.replace(/\/\/.*$/gm, '');
@@ -203,8 +212,8 @@ export function extractDependencies(
       switch (sourceExt) {
         case 'tsx':
         case 'jsx':
-          // Reactファイルは .ts, .tsx, .css, .scss などをimport
-          resolvedPath = resolvedPath + '.ts'; // デフォルトは .ts
+          // Reactファイルは .tsx, .ts, .css, .scss などをimport
+          resolvedPath = resolvedPath + '.tsx'; // デフォルトは .tsx (Reactコンポーネント)
           break;
         case 'ts':
         case 'js':
@@ -223,6 +232,12 @@ export function extractDependencies(
   let match;
   while ((match = importRegex.exec(withoutComments)) !== null) {
     const resolved = processImport(match[1]);
+    
+    // デバッグ用：特定ファイルの場合のみログ出力
+    if (filePath.includes('App.tsx') || filePath.includes('main.tsx')) {
+      console.log(`Import発見: "${match[1]}" -> 解決後: "${resolved}"`);
+    }
+    
     if (resolved) {
       dependencies.push(resolved);
     }
@@ -236,6 +251,53 @@ export function extractDependencies(
     }
   }
 
+  // CSSファイルの場合は@import文も処理
+  const fileExt = filePath.split('.').pop()?.toLowerCase();
+  if (fileExt === 'css' || fileExt === 'scss' || fileExt === 'sass') {
+    const cssImports = extractCssImports(withoutComments);
+    for (const importPath of cssImports) {
+      const resolved = processImport(importPath);
+      if (resolved) {
+        dependencies.push(resolved);
+      }
+    }
+  }
+
   // 重複を削除
-  return [...new Set(dependencies)];
+  const finalDependencies = [...new Set(dependencies)];
+  
+  // デバッグ用：TSファイルやCSSファイルの場合もログ出力
+  if (filePath.includes('App.tsx') || filePath.includes('main.tsx') || 
+      filePath.endsWith('.ts') || filePath.endsWith('.css') || 
+      filePath.endsWith('.scss') || filePath.endsWith('.sass')) {
+    console.log('最終的な依存関係:', finalDependencies);
+    console.log('=== 解析完了 ===');
+  }
+  
+  return finalDependencies;
+}
+
+// CSSファイルの@import文を抽出する関数
+function extractCssImports(content: string): string[] {
+  const imports: string[] = [];
+  
+  // @import "path"; または @import 'path'; パターン
+  const simpleImportRegex = /@import\s+['"]([^'"]+)['"]/g;
+  
+  // @import url("path"); または @import url('path'); パターン  
+  const urlImportRegex = /@import\s+url\(['"]([^'"]+)['"]\)/g;
+  
+  let match;
+  
+  // シンプルな@import文を抽出
+  while ((match = simpleImportRegex.exec(content)) !== null) {
+    imports.push(match[1]);
+  }
+  
+  // url()付きの@import文を抽出
+  while ((match = urlImportRegex.exec(content)) !== null) {
+    imports.push(match[1]);
+  }
+  
+  return imports;
 }

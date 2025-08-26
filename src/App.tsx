@@ -31,16 +31,26 @@ function App() {
   const monitorIntervalRef = useRef<number | null>(null);
   const filesRef = useRef<GitHubFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<GitHubFile | null>(null);
+  const [impactMode, setImpactMode] = useState<boolean>(false);
+  const [changedFiles, setChangedFiles] = useState<string[]>([]);
   
-  // 📍 選択状態変更のハンドラー（両ビューで共通使用）
+  // 選択状態変更のハンドラー（ForceGraphとProjectTreeViewで共通使用）
   const handleFileSelect = (file: GitHubFile | null) => {
     setSelectedFile(file);
-    console.log('🎯 ファイル選択:', file?.name);
+    // ファイル選択のログ出力（デバッグ用）
+    // console.log('ファイル選択:', file?.name);
+    
+    // Impact visualizationが有効で、ファイルが選択された場合は自動更新
+    if (impactMode && file?.path) {
+      setChangedFiles([file.path]);
+      // console.log('Impact visualization自動更新:', file.path);
+    }
   };
   const convertGitHubToGitHubFile = async (
     githubFiles: GitHubFile[]
   ): Promise<GitHubFile[]> => {
-    console.log('🔍 依存関係を解析中...');
+    // 依存関係解析中のログ出力
+    // console.log('依存関係を解析中...');
 
     const GitHubFilePromises = githubFiles.map(async (file, index) => {
       let dependencies: string[] = [];
@@ -48,10 +58,7 @@ function App() {
       if (
         file.type === 'file' &&
         file.download_url &&
-        (file.name.endsWith('.tsx') ||
-          file.name.endsWith('.ts') ||
-          file.name.endsWith('.jsx') ||
-          file.name.endsWith('.js'))
+        file.name.match(/\.(tsx?|jsx?|mjs|cjs|ts|css|scss|sass)$/)
       ) {
         try {
           const content = await fetchFileContent(file.download_url);
@@ -138,12 +145,12 @@ function App() {
         return files.filter(
           (file) =>
             (file.dependencies && file.dependencies.length > 0) ||
-            files.some((f) => f.dependencies?.includes(file.name))
+            files.some((f) => f.dependencies?.includes(file.path))
         );
       case 'main':
         // 主要ファイルのみ（JS/TS系）
         return files.filter((file) =>
-          file.name.match(/\.(tsx?|jsx?|mjs|cjs)$/)
+          file.name.match(/\.(tsx?|jsx?|mjs|cjs|css|scss|sass)$/)
         );
       default:
         return files;
@@ -251,8 +258,8 @@ function App() {
 
         let dependencies: string[] = [];
 
-        // TypeScript/JavaScriptファイルの場合、依存関係を解析
-        if (name.match(/\.(tsx?|jsx?|mjs|cjs)$/)) {
+        // TypeScript/JavaScript/CSSファイルの場合、依存関係を解析
+        if (name.match(/\.(tsx?|jsx?|mjs|cjs|ts|css|scss|sass)$/)) {
           try {
             const content = await file.text();
             dependencies = extractDependencies(content, path);
@@ -274,7 +281,7 @@ function App() {
       }
 
       // 統計情報の表示
-      console.log('📊 処理統計:', {
+      console.log('処理統計:', {
         total: files.length,
         processed: processedCount,
         excluded: excludedCount,
@@ -386,8 +393,8 @@ function App() {
 
         let dependencies: string[] = [];
 
-        // JS/TSファイルの依存関係を解析
-        if (fileName.match(/\.(tsx?|jsx?|mjs|cjs)$/)) {
+        // JS/TS/CSSファイルの依存関係を解析
+        if (fileName.match(/\.(tsx?|jsx?|mjs|cjs|ts|css|scss|sass)$/)) {
           try {
             const file = await handle.getFile();
             const content = await file.text();
@@ -414,7 +421,7 @@ function App() {
         }
       }
 
-      console.log('📊 処理完了:', {
+      console.log('処理完了:', {
         total: stats.total,
         processed: stats.processed,
         excluded: stats.excluded,
@@ -434,7 +441,7 @@ function App() {
           .filter((name) => importantPackages.includes(name))
           .slice(0, 5);
 
-        console.log('🔍 主要パッケージ情報を取得:', depsToFetch);
+        console.log('主要パッケージ情報を取得:', depsToFetch);
 
         for (const pkgName of depsToFetch) {
           try {
@@ -469,7 +476,7 @@ function App() {
       return;
     }
 
-    // ⭐ 監視開始前に現在のfilesをfilesRefにセット
+    // 監視開始前に現在のファイル状態を保存
     filesRef.current = files;
 
     setIsMonitoring(true);
@@ -575,7 +582,7 @@ function App() {
       }
 
       console.log(
-        `📊 ファイル数: 旧=${oldFiles.length}, 新=${GitHubFile.length}`
+        `ファイル数: 旧=${oldFiles.length}, 新=${GitHubFile.length}`
       );
 
       if (GitHubFile.length !== oldFiles.length) {
@@ -617,7 +624,7 @@ function App() {
       }
 
       if (hasChanges) {
-        console.log('✨ ファイルの変更を検出！');
+        console.log('ファイルの変更を検出しました');
         filesRef.current = GitHubFile;
         setFiles(GitHubFile);
         setLastUpdate(new Date());
@@ -707,7 +714,7 @@ function App() {
                 marginBottom: '10px',
               }}
             >
-              🚀 フォルダを選択（高速版・Chrome/Edge推奨）
+              フォルダを選択（高速版・Chrome/Edge推奨）
             </button>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>
               node_modules自動除外・リアルタイム更新対応
@@ -816,7 +823,7 @@ function App() {
           }}
         >
           <span>
-            📍 現在のリポジトリ: <strong>{repoUrl}</strong>
+            現在のリポジトリ: <strong>{repoUrl}</strong>
           </span>
           <button
             onClick={clearAll}
@@ -865,10 +872,76 @@ function App() {
         </div>
       )}
 
-      {/* ⭐ ファイルが読み込まれた後の表示部分 */}
+      {/* ファイル読み込み完了後の表示部分 */}
       {files.length > 0 && (
         <>
           <ViewTabs currentView={viewMode} onViewChange={setViewMode} />
+
+          {/* Impact Visualizationコントロール */}
+          <div
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#f8fafc',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '15px',
+            }}
+          >
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="checkbox"
+                checked={impactMode}
+                onChange={(e) => {
+                  const isChecked = e.target.checked;
+                  setImpactMode(isChecked);
+                  
+                  // チェックON時に選択中のファイルがあれば自動的に設定
+                  if (isChecked && selectedFile?.path) {
+                    setChangedFiles([selectedFile.path]);
+                    // console.log('チェックボックスON - 自動設定:', selectedFile.path);
+                  } else if (!isChecked) {
+                    setChangedFiles([]);
+                    // console.log('チェックボックスOFF - クリア');
+                  }
+                }}
+                style={{ width: '16px', height: '16px' }}
+              />
+              <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                変更影響の可視化
+              </span>
+            </label>
+            
+            {selectedFile && (
+              <button
+                onClick={() => {
+                  if (selectedFile.path) {
+                    console.log('Impact Visualizationボタンクリック:', selectedFile.path);
+                    setImpactMode(true);
+                    setChangedFiles([selectedFile.path]);
+                    console.log('State設定完了 - impactMode: true, changedFiles:', [selectedFile.path]);
+                  }
+                }}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                「{selectedFile.name}」の影響範囲を表示
+              </button>
+            )}
+            
+            {impactMode && changedFiles.length > 0 && (
+              <span style={{ fontSize: '13px', color: '#6b7280' }}>
+                変更対象: {changedFiles.map(f => f.split('/').pop()).join(', ')}
+              </span>
+            )}
+          </div>
 
           {/* リアルタイム監視ボタン（ローカルモードの時のみ表示） */}
           {mode === 'local' && currentDirHandle && (
@@ -1007,7 +1080,7 @@ function App() {
             </span>
           </div>
 
-          {/* ⭐️ メインのビュー表示部分 */}
+          {/* メインのビュー表示部分 */}
           <div style={{ height: 'calc(100vh - 350px)' }}>
             {/* リストビュー */}
             {viewMode === 'list' && (
@@ -1071,6 +1144,8 @@ function App() {
                 files={filteredFiles} 
                 selectedFile={selectedFile}
                 onFileSelect={handleFileSelect}
+                impactMode={impactMode}
+                changedFiles={changedFiles}
               />
             )}
 
@@ -1087,6 +1162,8 @@ function App() {
                     files={filteredFiles}
                     selectedFile={selectedFile}
                     onFileSelect={handleFileSelect}
+                    impactMode={impactMode}
+                    changedFiles={changedFiles}
                   />
                 </div>
                 <div
@@ -1113,7 +1190,7 @@ function App() {
                       >
                         <div>📁 {selectedFile.path}</div>
                         <div>
-                          📊{' '}
+                          統計{' '}
                           {selectedFile.size
                             ? `${(selectedFile.size / 1024).toFixed(2)} KB`
                             : 'サイズ不明'}
@@ -1132,20 +1209,13 @@ function App() {
                         <div
                           style={{ fontWeight: 'bold', marginBottom: '5px' }}
                         >
-                          依存関係
+                          詳細情報
                         </div>
-                        <div style={{ fontSize: '12px' }}>
-                          📥 依存: {selectedFile.dependencies?.length || 0}{' '}
-                          ファイル
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                          📋 ファイル詳細機能は実装予定です
                         </div>
-                        <div style={{ fontSize: '12px' }}>
-                          📤 被依存:{' '}
-                          {
-                            files.filter((f) =>
-                              f.dependencies?.includes(selectedFile.name)
-                            ).length
-                          }{' '}
-                          ファイル
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '3px' }}>
+                          依存関係の詳細分析なども今後追加されます
                         </div>
                       </div>
 

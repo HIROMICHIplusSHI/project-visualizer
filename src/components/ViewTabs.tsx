@@ -7,6 +7,7 @@ interface ViewTabsProps {
 }
 
 function ViewTabs({ currentView, onViewChange }: ViewTabsProps) {
+  // タブコンテナのスタイル設定
   const containerStyle = {
     display: 'flex',
     gap: theme.spacing.xs,
@@ -15,6 +16,7 @@ function ViewTabs({ currentView, onViewChange }: ViewTabsProps) {
     borderBottom: `1px solid ${theme.colors.border}`,
   };
 
+  // アクティブ状態に応じたタブスタイルを生成
   const getTabStyle = (isActive: boolean) => ({
     display: 'flex',
     alignItems: 'center',
@@ -33,19 +35,33 @@ function ViewTabs({ currentView, onViewChange }: ViewTabsProps) {
     boxShadow: isActive ? theme.shadow.sm : 'none',
   });
 
+  // 表示するタブの設定配列
   const tabs = [
     { id: 'list', label: 'リストビュー', icon: List },
     { id: 'graph', label: 'グラフビュー', icon: GitBranch },
     { id: 'split', label: '分割ビュー', icon: Columns },
   ];
 
+  // キーボードナビゲーション処理
+  const handleKeyDown = (event: React.KeyboardEvent, tabId: string) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onViewChange(tabId as 'list' | 'graph' | 'split');
+    }
+  };
+
   return (
-    <div style={containerStyle}>
+    <div role="tablist" style={containerStyle}>
       {tabs.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
+          role="tab"
+          aria-selected={currentView === id}
+          aria-controls={`${id}-panel`}
+          tabIndex={currentView === id ? 0 : -1}
           style={getTabStyle(currentView === id)}
           onClick={() => onViewChange(id as 'list' | 'graph' | 'split')}
+          onKeyDown={(e) => handleKeyDown(e, id)}
           onMouseEnter={(e) => {
             if (currentView !== id) {
               e.currentTarget.style.backgroundColor = 'white';

@@ -23,7 +23,7 @@ const ProjectTreeView: React.FC<ProjectTreeViewProps> = ({
     }
   };
 
-  // 🔍 検索クエリに基づいてファイルをフィルタリング
+  // 検索クエリによるファイルフィルタリング処理
   const filteredFiles = files.filter((file) =>
     file.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     file.path.toLowerCase().includes(searchQuery.toLowerCase())
@@ -45,7 +45,7 @@ const ProjectTreeView: React.FC<ProjectTreeViewProps> = ({
           エクスプローラー
         </h3>
 
-        {/* 🔍 検索入力フィールド */}
+        {/* 検索入力フィールド */}
         <div style={{
           position: 'relative',
           marginBottom: '10px'
