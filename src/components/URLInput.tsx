@@ -66,6 +66,10 @@ const URLInput: React.FC<URLInputProps> = ({ onSubmit }) => {
                 1時間60回まで（未認証）により開発停止中
               </div>
               <div style={{ marginBottom: '4px' }}>
+                • <strong>認証トークンについて：</strong>
+                セキュリティ上の理由により認証トークンは使用しません（制限は5000回/時間まで向上可能ですが未対応）
+              </div>
+              <div style={{ marginBottom: '4px' }}>
                 • <strong>現状の仕様：</strong>
                 GitHubリポジトリの読み込み /
                 中規模以上のプロジェクトは1発で制限にかかる恐れあり
