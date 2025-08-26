@@ -6,7 +6,7 @@ import { calculateCanvasSize } from '../utils/graphHelpers';
 
 interface UseCanvasSizeProps {
   files: any[]; // ファイル配列
-  containerRef?: React.RefObject<HTMLElement>;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 interface CanvasSize {

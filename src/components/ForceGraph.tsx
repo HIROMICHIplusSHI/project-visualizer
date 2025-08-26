@@ -2,52 +2,53 @@
 // 力学グラフ表示コンポーネント - D3.jsを使用したノード・リンクの可視化
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import { type GitHubFile } from '../services/githubApi';
-import {
-  nodeStyles,
-  linkStyles,
-  getFileColor,
-  getPerformanceSettings, // パフォーマンス設定取得用
-  calculateImpactLevel, // Impact visualization用
-} from '../constants/graphStyles';
+import type { GitHubFile } from '../services/githubApi';
+
+// カスタムフック
 import { useCanvasSize } from '../hooks/useCanvasSize';
-import { 
-  calculateNodeSize,
-  type D3Node,
-  type D3Link
-} from '../utils/graphHelpers';
+import { useForceSimulation } from '../hooks/useForceSimulation';
+import { useGraphInteractions } from '../hooks/useGraphInteractions';
+
+// ユーティリティ関数
+import { createDependencyMap } from '../utils/graphHelpers';
 import {
   renderLinks,
   createNodeGroup,
   renderNodeCircles,
   renderNodeIcons,
-  renderNodeLabels
+  renderNodeLabels,
+  updateSelectedNodeHighlight
 } from '../utils/nodeRenderer';
-import { useGraphInteractions } from '../hooks/useGraphInteractions';
-import { useForceSimulation } from '../hooks/useForceSimulation';
 
+// スタイル・設定
+import { GRAPH_CONFIG } from '../constants/graphConfig';
 
 interface ForceGraphProps {
   files: GitHubFile[];
   selectedFile?: GitHubFile | null;
   onFileSelect?: (file: GitHubFile | null) => void;
-  changedFiles?: string[]; // Impact visualization用：変更されたファイルのパス
-  impactMode?: boolean; // Impact visualization表示モード
+  changedFiles?: string[];
+  impactMode?: boolean;
 }
 
-// 型定義はutils/graphHelpers.tsから取得
-
-const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSelect, changedFiles, impactMode }) => {
+const ForceGraph: React.FC<ForceGraphProps> = ({
+  files,
+  selectedFile,
+  onFileSelect,
+  changedFiles,
+  impactMode
+}) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  // カスタムフックで動的サイズ管理  
-  const { width, height } = useCanvasSize({ 
-    files, 
-    containerRef: containerRef as React.RefObject<HTMLElement> 
+
+  // カスタムフックによる責任分散
+  const canvasSize = useCanvasSize({ files, containerRef });
+  const { nodes, links, createSimulation, stopSimulation } = useForceSimulation({
+    files,
+    canvasSize,
+    changedFiles,
+    impactMode
   });
-  
-  // インタラクション処理のカスタムフック
   const {
     createZoomBehavior,
     createZoomControls,
@@ -63,27 +64,13 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
     impactMode
   });
 
-  // シミュレーション管理のカスタムフック
-  const { nodes, links, createSimulation, stopSimulation } = useForceSimulation({
-    files,
-    canvasSize: { width, height },
-    changedFiles,
-    impactMode
-  });
-
   useEffect(() => {
     if (!svgRef.current || files.length === 0) return;
 
     // 前回の描画内容をクリア
     d3.select(svgRef.current).selectAll('*').remove();
-
-    // ファイル数に応じたパフォーマンス設定を取得
-    const perfSettings = getPerformanceSettings(files.length);
-    // ファイル数とパフォーマンス設定の確認
-    // console.log(`ファイル数: ${files.length}, パフォーマンスモード:`, perfSettings);
-
-    // 動的サイズはuseCanvasSizeフックで管理済み
-
+    
+    const { width, height } = canvasSize;
     const svg = d3
       .select(svgRef.current)
       .attr('width', width)
@@ -92,225 +79,43 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
       .style('border-radius', '8px')
       .style('background', 'white');
 
-    // ズームとインタラクション設定
+    // ズーム機能の設定
     const { g, zoom } = createZoomBehavior(svg);
-    
-    // ズームコントロール
-    const parentNode = svgRef.current.parentNode;
+
+    // ズームコントロールの作成
+    const parentElement = svgRef.current.parentElement;
     let controls: d3.Selection<HTMLDivElement, unknown, null, undefined> | null = null;
-    if (parentNode) {
-      controls = createZoomControls(parentNode as HTMLElement, svg, zoom);
+    
+    if (parentElement) {
+      controls = createZoomControls(parentElement, svg, zoom);
     }
 
-    // Impact visualization用の依存関係マップを作成
-    const dependencyMap: Record<string, string[]> = {};
-    files.forEach((file) => {
-      if (file.dependencies && file.path) {
-        dependencyMap[file.path] = file.dependencies;
-      }
-    });
+    // Impact visualization用の依存関係マップ
+    const dependencyMap = createDependencyMap(files);
 
-    // シミュレーション作成
+    // シミュレーションの作成と開始
     const simulation = createSimulation();
 
-    // TODO(human): Replace the rendering logic below with function calls from utils/nodeRenderer.ts
-    // Use renderLinks(), createNodeGroup(), renderNodeCircles(), renderNodeIcons(), renderNodeLabels()
-    
-    // リンク（線）を描画
+    // リンクの描画
     const linkGroup = g.append('g').attr('class', 'links');
+    const linkElements = renderLinks(
+      linkGroup,
+      links,
+      files,
+      impactMode,
+      changedFiles,
+      dependencyMap
+    );
 
-    // レンダリング関数呼び出し
-    const linkElements = renderLinks(linkGroup, links, files, impactMode, changedFiles, dependencyMap);
+    // ノードの描画
     const nodeGroup = createNodeGroup(g, nodes);
     
+    // ノード要素の描画
     renderNodeCircles(nodeGroup, files, impactMode, changedFiles, dependencyMap);
     renderNodeIcons(nodeGroup);
     renderNodeLabels(nodeGroup, files.length);
 
-    // TODO(human): Replace interaction logic below with useGraphInteractions hook
-    // Import useGraphInteractions and use createZoomBehavior, createDragBehavior, handleNodeClick, etc.
-    
-    // ホバー効果の設定（パフォーマンス設定による制御）
-    if (perfSettings.showHoverEffects) {
-      nodeGroup
-        .on('mouseenter', function (this: SVGGElement, _event, d) {
-          // 背景の円を大きく
-          d3.select(this)
-            .select('circle')
-            .transition()
-            .duration(perfSettings.animationDuration) // アニメーション速度設定
-            .attr('r', nodeStyles.circle.hoverRadius)
-            .attr('stroke-width', nodeStyles.circle.hoverStrokeWidth);
-
-          // アイコンも少し大きく
-          d3.select(this)
-            .select('path')
-            .transition()
-            .duration(perfSettings.animationDuration) // アニメーション速度設定
-            .attr(
-              'transform',
-              `translate(${nodeStyles.icon.hoverTranslateX}, ${nodeStyles.icon.hoverTranslateY}) scale(${nodeStyles.icon.hoverScale})`
-            );
-
-          // 関連する線を強調
-          linkElements
-            .style('stroke', (l) => {
-              const link = l as D3Link;
-              const sourceId =
-                typeof link.source === 'object' ? link.source.id : link.source;
-              const targetId =
-                typeof link.target === 'object' ? link.target.id : link.target;
-              
-              if (sourceId === d.id || targetId === d.id) {
-                // Impact Visualizationモードの場合は、Impact色を優先
-                if (impactMode && changedFiles && changedFiles.length > 0) {
-                  const sourceFile = files.find(f => f.id === sourceId);
-                  const targetFile = files.find(f => f.id === targetId);
-                  
-                  if (sourceFile?.path && targetFile?.path) {
-                    const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
-                    const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
-                    
-                    if (sourceLevel >= 0 || targetLevel >= 0) {
-                      return linkStyles.impact.stroke; // Impact色を維持
-                    }
-                  }
-                }
-                return linkStyles.hover.stroke; // 通常のホバー色
-              }
-              
-              // ホバー対象外のリンクの色を決定
-              if (impactMode && changedFiles && changedFiles.length > 0) {
-                const sourceFile = files.find(f => f.id === sourceId);
-                const targetFile = files.find(f => f.id === targetId);
-                
-                if (sourceFile?.path && targetFile?.path) {
-                  const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
-                  const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
-                  
-                  if (sourceLevel >= 0 || targetLevel >= 0) {
-                    return linkStyles.impact.stroke; // Impact色を維持
-                  }
-                }
-              }
-              
-              return linkStyles.default.stroke;
-            })
-            .style('stroke-width', (l) => {
-              const link = l as D3Link;
-              const sourceId =
-                typeof link.source === 'object' ? link.source.id : link.source;
-              const targetId =
-                typeof link.target === 'object' ? link.target.id : link.target;
-              
-              if (sourceId === d.id || targetId === d.id) {
-                // Impact Visualizationモードの場合は、Impact線の太さを優先
-                if (impactMode && changedFiles && changedFiles.length > 0) {
-                  const sourceFile = files.find(f => f.id === sourceId);
-                  const targetFile = files.find(f => f.id === targetId);
-                  
-                  if (sourceFile?.path && targetFile?.path) {
-                    const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
-                    const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
-                    
-                    if (sourceLevel >= 0 || targetLevel >= 0) {
-                      return linkStyles.impact.strokeWidth; // Impact線の太さを維持
-                    }
-                  }
-                }
-                return linkStyles.hover.strokeWidth; // 通常のホバー太さ
-              }
-              
-              // ホバー対象外のリンクの太さを決定
-              if (impactMode && changedFiles && changedFiles.length > 0) {
-                const sourceFile = files.find(f => f.id === sourceId);
-                const targetFile = files.find(f => f.id === targetId);
-                
-                if (sourceFile?.path && targetFile?.path) {
-                  const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
-                  const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
-                  
-                  if (sourceLevel >= 0 || targetLevel >= 0) {
-                    return linkStyles.impact.strokeWidth; // Impact線の太さを維持
-                  }
-                }
-              }
-              
-              return linkStyles.default.strokeWidth;
-            });
-        })
-        .on('mouseleave', function (this: SVGGElement) {
-          // 元に戻す
-          d3.select(this)
-            .select('circle')
-            .transition()
-            .duration(perfSettings.animationDuration) // アニメーション速度設定
-            .attr('r', (d) => {
-              const targetFile = files.find(f => f.id === (d as D3Node).id);
-              return targetFile ? calculateNodeSize(targetFile, files) : nodeStyles.circle.radius;
-            })
-            .attr('stroke-width', nodeStyles.circle.strokeWidth);
-
-          d3.select(this)
-            .select('path')
-            .transition()
-            .duration(perfSettings.animationDuration) // アニメーション速度設定
-            .attr(
-              'transform',
-              `translate(${nodeStyles.icon.translateX}, ${nodeStyles.icon.translateY}) scale(${nodeStyles.icon.scale})`
-            );
-
-          // 線を元に戻す（Impact Visualizationを考慮）
-          linkElements
-            .style('stroke', (d) => {
-              // Impact Visualizationモードの場合は適切な色を設定
-              if (impactMode && changedFiles && changedFiles.length > 0) {
-                const link = d as D3Link;
-                const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-                const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-                const sourceFile = files.find(f => f.id === sourceId);
-                const targetFile = files.find(f => f.id === targetId);
-                
-                if (sourceFile?.path && targetFile?.path) {
-                  const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
-                  const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
-                  
-                  if (sourceLevel >= 0 || targetLevel >= 0) {
-                    return linkStyles.impact.stroke; // Impact色を維持
-                  }
-                }
-              }
-              return linkStyles.default.stroke;
-            })
-            .style('stroke-width', (d) => {
-              // Impact Visualizationモードの場合は適切な太さを設定
-              if (impactMode && changedFiles && changedFiles.length > 0) {
-                const link = d as D3Link;
-                const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-                const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-                const sourceFile = files.find(f => f.id === sourceId);
-                const targetFile = files.find(f => f.id === targetId);
-                
-                if (sourceFile?.path && targetFile?.path) {
-                  const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
-                  const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
-                  
-                  if (sourceLevel >= 0 || targetLevel >= 0) {
-                    return linkStyles.impact.strokeWidth; // Impact線の太さを維持
-                  }
-                }
-              }
-              return linkStyles.default.strokeWidth;
-            });
-        });
-    } else {
-      // ホバー効果無効時は基本的な情報表示のみ
-      // nodeGroup.on('mouseenter', function (_event, d) {
-      //   console.log('ファイル:', d.name);
-      // });
-    }
-
-    // インタラクション設定
+    // インタラクションの設定
     const drag = createDragBehavior(simulation);
     nodeGroup.call(drag);
 
@@ -328,63 +133,46 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
       // リンクの位置更新
       linkElements
         .attr('x1', (d) => {
-          const link = d as D3Link;
-          return typeof link.source === 'object' ? link.source.x! : 0;
+          const source = d.source as d3.SimulationNodeDatum;
+          return typeof source === 'object' ? source.x! : 0;
         })
         .attr('y1', (d) => {
-          const link = d as D3Link;
-          return typeof link.source === 'object' ? link.source.y! : 0;
+          const source = d.source as d3.SimulationNodeDatum;
+          return typeof source === 'object' ? source.y! : 0;
         })
         .attr('x2', (d) => {
-          const link = d as D3Link;
-          return typeof link.target === 'object' ? link.target.x! : 0;
+          const target = d.target as d3.SimulationNodeDatum;
+          return typeof target === 'object' ? target.x! : 0;
         })
         .attr('y2', (d) => {
-          const link = d as D3Link;
-          return typeof link.target === 'object' ? link.target.y! : 0;
+          const target = d.target as d3.SimulationNodeDatum;
+          return typeof target === 'object' ? target.y! : 0;
         });
 
       // ノードの位置更新（境界制限付き）
       nodes.forEach((d) => {
-        d.x = Math.max(30, Math.min(width - 30, d.x!));
-        d.y = Math.max(30, Math.min(height - 30, d.y!));
+        d.x = Math.max(
+          GRAPH_CONFIG.node.boundaryPadding,
+          Math.min(width - GRAPH_CONFIG.node.boundaryPadding, d.x!)
+        );
+        d.y = Math.max(
+          GRAPH_CONFIG.node.boundaryPadding,
+          Math.min(height - GRAPH_CONFIG.node.boundaryPadding, d.y!)
+        );
       });
 
       nodeGroup.attr('transform', (d) => `translate(${d.x},${d.y})`);
     });
 
-    // 選択されたファイルの強調表示を更新する関数
-    const updateSelectedNode = () => {
-      nodeGroup.selectAll<SVGCircleElement, D3Node>('circle')
-        .attr('stroke-width', (d) => {
-          if (selectedFile && selectedFile.id === d.id) {
-            return 4; // 選択されたファイルの境界線を太く
-          }
-          return nodeStyles.circle.strokeWidth;
-        })
-        .attr('stroke', (d) => {
-          // Impact visualizationが有効な場合は、それを優先
-          if (impactMode && changedFiles && changedFiles.length > 0) {
-            const targetFile = files.find(f => f.id === (d as D3Node).id);
-            if (targetFile?.path) {
-              const impactLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
-              if (impactLevel >= 0) {
-                return getFileColor(d.name, d.type === 'dir', impactLevel);
-              }
-            }
-          }
-          
-          // Impact visualizationが無効またはimpactLevelが-1の場合、選択強調を適用
-          if (selectedFile && selectedFile.id === d.id) {
-            return '#f97316'; // オレンジ色で強調
-          }
-          
-          return getFileColor(d.name, d.type === 'dir');
-        });
-    };
-
-    // 初回と selectedFile 変更時に強調表示を更新
-    updateSelectedNode();
+    // 選択されたファイルの強調表示
+    updateSelectedNodeHighlight(
+      nodeGroup,
+      selectedFile,
+      files,
+      impactMode,
+      changedFiles,
+      dependencyMap
+    );
 
     // クリーンアップ
     return () => {
@@ -394,27 +182,26 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
       }
     };
   }, [
-    files, 
-    selectedFile, 
-    changedFiles, 
-    impactMode, 
-    onFileSelect, 
-    width, 
-    height,
+    files,
+    selectedFile,
+    changedFiles,
+    impactMode,
+    canvasSize,
+    nodes,
+    links,
+    createSimulation,
+    stopSimulation,
     createZoomBehavior,
     createZoomControls,
-    createSimulation,
     createDragBehavior,
     handleNodeClick,
     handleNodeMouseEnter,
-    handleNodeMouseLeave,
-    stopSimulation,
-    nodes,
-    links
+    handleNodeMouseLeave
   ]);
 
   return (
     <div
+      ref={containerRef}
       style={{
         padding: '20px',
         backgroundColor: '#f9fafb',
@@ -423,45 +210,11 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
         position: 'relative',
         height: '100%',
-        overflow: 'auto', // スクロール可能
+        overflow: 'auto',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      {/* SVG コンテナ - 動的サイズ対応 */}
-      <div
-        style={{
-          width: '100%',
-          height: 'fit-content',
-          overflow: 'auto', // 大きなキャンバス用のスクロール
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
-          backgroundColor: 'white',
-        }}
-      >
-      <h3
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          color: '#374151',
-        }}
-      >
-        依存関係グラフ
-      </h3>
-      <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
-        線は依存関係を表します。ホバーで関連ファイルを強調表示
-        {files.length > 50 && (
-          <span style={{ color: '#f59e0b', marginLeft: '10px' }}>
-            ⚡ パフォーマンスモード（{files.length}ファイル）
-          </span>
-        )}
-      </p>
-
-
-        <svg ref={svgRef}></svg>
-      </div>
-      
       {/* ヘッダー情報 */}
       <h3
         style={{
@@ -469,19 +222,34 @@ const ForceGraph: React.FC<ForceGraphProps> = ({ files, selectedFile, onFileSele
           alignItems: 'center',
           gap: '8px',
           color: '#374151',
-          margin: '16px 0 8px 0',
+          margin: '0 0 8px 0',
         }}
       >
         依存関係グラフ
       </h3>
-      <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
+      
+      <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
         線は依存関係を表します。ホバーで関連ファイルを強調表示
-        {files.length > 50 && (
+        {files.length > GRAPH_CONFIG.performance.labelThreshold && (
           <span style={{ color: '#f59e0b', marginLeft: '10px' }}>
             ⚡ パフォーマンスモード（{files.length}ファイル）
           </span>
         )}
       </p>
+
+      {/* SVGコンテナ */}
+      <div
+        style={{
+          width: '100%',
+          height: 'fit-content',
+          overflow: 'auto',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          backgroundColor: 'white',
+        }}
+      >
+        <svg ref={svgRef}></svg>
+      </div>
     </div>
   );
 };

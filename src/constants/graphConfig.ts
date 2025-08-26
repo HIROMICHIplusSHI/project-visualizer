@@ -68,8 +68,19 @@ export const LAYOUT_CONFIG = {
   },
 } as const;
 
+// 統合された設定オブジェクト（ForceGraphRefactored.tsx用）
+export const GRAPH_CONFIG = {
+  node: {
+    boundaryPadding: NODE_CONFIG.collisionPadding.withoutHover,
+  },
+  performance: {
+    labelThreshold: 50, // ラベル表示の閾値（ファイル数）
+  },
+} as const;
+
 // 設定値の型定義をエクスポート
 export type CanvasConfig = typeof CANVAS_CONFIG;
 export type NodeConfig = typeof NODE_CONFIG;
 export type SimulationConfig = typeof SIMULATION_CONFIG;
 export type LayoutConfig = typeof LAYOUT_CONFIG;
+export type GraphConfig = typeof GRAPH_CONFIG;

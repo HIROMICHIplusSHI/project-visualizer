@@ -140,9 +140,27 @@ export const createLinks = (files: GitHubFile[]): D3Link[] => {
 };
 
 /**
+ * 依存関係マップを作成
+ * @param files ファイル配列
+ * @returns 依存関係マップ
+ */
+export const createDependencyMap = (files: GitHubFile[]): Record<string, string[]> => {
+  const dependencyMap: Record<string, string[]> = {};
+  
+  files.forEach(file => {
+    if (file.path && file.dependencies) {
+      dependencyMap[file.path] = file.dependencies;
+    }
+  });
+  
+  return dependencyMap;
+};
+
+/**
  * ハブ中心レイアウトのカスタム力を生成
  * @param nodes ノード配列
  * @param files ファイル配列
+ * @param hubFiles ハブファイル配列
  * @param width キャンバス幅
  * @param height キャンバス高さ
  * @returns カスタム力関数
@@ -150,6 +168,7 @@ export const createLinks = (files: GitHubFile[]): D3Link[] => {
 export const createCustomLayoutForce = (
   nodes: D3Node[], 
   files: GitHubFile[], 
+  hubFiles: D3Node[],
   width: number, 
   height: number
 ) => {
