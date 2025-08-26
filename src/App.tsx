@@ -364,18 +364,29 @@ function App() {
               </div>
             </div>
 
-            {/* 従来の方法 */}
+            {/* 従来の方法（非推奨） */}
             <div style={{
               padding: '15px',
-              backgroundColor: '#f3f4f6',
+              backgroundColor: '#fef2f2',
               borderRadius: '8px',
+              border: '1px solid #fecaca',
             }}>
               <p style={{
                 fontSize: '14px',
-                marginBottom: '10px',
+                marginBottom: '8px',
                 fontWeight: 'bold',
+                color: '#dc2626',
               }}>
-                または従来の方法：
+                ⚠️ 従来の方法（非推奨）：
+              </p>
+              <p style={{
+                fontSize: '12px',
+                marginBottom: '12px',
+                color: '#7f1d1d',
+                lineHeight: '1.4',
+              }}>
+                node_modulesを含む全ファイル（1万ファイル超）を読み込むため、
+                <br />ブラウザがフリーズする可能性があります。大きなプロジェクトでは使用しないでください。
               </p>
               <input
                 type='file'
@@ -384,7 +395,10 @@ function App() {
                 directory=''
                 multiple
                 onChange={handleLocalFolder}
-                style={{ width: '100%' }}
+                style={{ 
+                  width: '100%',
+                  fontSize: '12px',
+                }}
               />
             </div>
           </div>
