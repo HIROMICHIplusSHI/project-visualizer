@@ -12,6 +12,7 @@ interface GraphContainerProps {
   onFileSelect?: (file: GitHubFile | null) => void;
   changedFiles?: string[];
   impactMode?: boolean;
+  onResetImpactMode?: () => void;
 }
 
 const GraphContainer: React.FC<GraphContainerProps> = ({
@@ -19,7 +20,8 @@ const GraphContainer: React.FC<GraphContainerProps> = ({
   selectedFile,
   onFileSelect,
   changedFiles,
-  impactMode
+  impactMode,
+  onResetImpactMode
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -42,11 +44,11 @@ const GraphContainer: React.FC<GraphContainerProps> = ({
       {/* ヘッダー情報 */}
       <h3
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
+          textAlign: 'center',
           color: '#374151',
           margin: '0 0 8px 0',
+          fontSize: '18px',
+          fontWeight: '600'
         }}
       >
         依存関係グラフ
@@ -78,6 +80,7 @@ const GraphContainer: React.FC<GraphContainerProps> = ({
           onFileSelect={onFileSelect}
           changedFiles={changedFiles}
           impactMode={impactMode}
+          onResetImpactMode={onResetImpactMode}
           containerRef={containerRef}
         />
       </div>

@@ -31,6 +31,7 @@ interface GraphRendererProps {
   onFileSelect?: (file: GitHubFile | null) => void;
   changedFiles?: string[];
   impactMode?: boolean;
+  onResetImpactMode?: () => void;
   containerRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -40,6 +41,7 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
   onFileSelect,
   changedFiles,
   impactMode,
+  onResetImpactMode,
   containerRef
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -54,7 +56,6 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
   });
   const {
     createZoomBehavior,
-    createZoomControls,
     createDragBehavior,
     handleNodeClick,
     handleNodeMouseEnter,
@@ -70,8 +71,14 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
   useEffect(() => {
     if (!svgRef.current || files.length === 0) return;
 
-    // 前回の描画内容をクリア
+    // 前回の描画内容をクリア（SVGとコントロールボタン両方）
     d3.select(svgRef.current).selectAll('*').remove();
+    
+    // 親要素に追加されたコントロールボタンもクリア
+    const parentElement = svgRef.current.parentElement;
+    if (parentElement) {
+      d3.select(parentElement).selectAll('div').remove();
+    }
     
     const { width, height } = canvasSize;
     const svg = d3
@@ -85,13 +92,6 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
     // ズーム機能の設定
     const { g, zoom } = createZoomBehavior(svg);
 
-    // ズームコントロールの作成
-    const parentElement = svgRef.current.parentElement;
-    let controls: d3.Selection<HTMLDivElement, unknown, null, undefined> | null = null;
-    
-    if (parentElement) {
-      controls = createZoomControls(parentElement, svg, zoom);
-    }
 
     // Impact visualization用の依存関係マップ
     const dependencyMap = createDependencyMap(files);
@@ -189,9 +189,6 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
     // クリーンアップ
     return () => {
       stopSimulation();
-      if (controls) {
-        controls.remove();
-      }
     };
   }, [
     files,
@@ -204,7 +201,6 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
     createSimulation,
     stopSimulation,
     createZoomBehavior,
-    createZoomControls,
     createDragBehavior,
     handleNodeClick,
     handleNodeMouseEnter,

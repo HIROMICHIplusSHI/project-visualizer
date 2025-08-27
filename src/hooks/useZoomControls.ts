@@ -12,7 +12,8 @@ interface UseZoomControlsReturn {
   createZoomControls: (
     parentElement: HTMLElement,
     svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-    zoom: d3.ZoomBehavior<SVGSVGElement, unknown>
+    zoom: d3.ZoomBehavior<SVGSVGElement, unknown>,
+    onReset?: () => void
   ) => d3.Selection<HTMLDivElement, unknown, null, undefined>;
 }
 
@@ -25,6 +26,7 @@ export const useZoomControls = (): UseZoomControlsReturn => {
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
       .on('zoom', (event) => {
+        console.log('🔍 Zoom event:', event.transform);
         g.attr('transform', event.transform);
       });
 
@@ -32,62 +34,71 @@ export const useZoomControls = (): UseZoomControlsReturn => {
     return { g, zoom };
   }, []);
 
-  // ズームコントロールボタンの作成
+  // リセットボタンのみ作成（中央下部に配置）
   const createZoomControls = useCallback((
     parentElement: HTMLElement,
     svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-    zoom: d3.ZoomBehavior<SVGSVGElement, unknown>
+    zoom: d3.ZoomBehavior<SVGSVGElement, unknown>,
+    onReset?: () => void
   ) => {
-    const controls = d3
+    console.log('🔧 Creating reset button...', { parentElement, svg, zoom });
+    const resetButton = d3
       .select(parentElement)
       .append('div')
       .style('position', 'absolute')
-      .style('top', '10px')
-      .style('left', '10px')
-      .style('display', 'flex')
-      .style('gap', '5px')
+      .style('bottom', '20px')
+      .style('left', '50%')
+      .style('transform', 'translateX(-50%)')
       .style('z-index', '10');
 
-    // ズームイン
-    controls
+    // 目立つリセットボタン
+    resetButton
       .append('button')
-      .text('+')
-      .style('padding', '5px 10px')
+      .html('🔄 表示をリセット')
+      .style('padding', '12px 24px')
       .style('cursor', 'pointer')
-      .style('border', '1px solid #d1d5db')
-      .style('background', 'white')
-      .style('border-radius', '4px')
+      .style('border', '2px solid #3b82f6')
+      .style('background', 'linear-gradient(145deg, #ffffff, #f1f5f9)')
+      .style('color', '#1e40af')
+      .style('border-radius', '8px')
+      .style('font-size', '14px')
+      .style('font-weight', '600')
+      .style('box-shadow', '0 4px 12px rgba(59, 130, 246, 0.15)')
+      .style('transition', 'all 0.2s ease')
+      .on('mouseover', function() {
+        d3.select(this)
+          .style('transform', 'translateY(-2px)')
+          .style('box-shadow', '0 6px 20px rgba(59, 130, 246, 0.25)')
+          .style('background', 'linear-gradient(145deg, #f8fafc, #e2e8f0)');
+      })
+      .on('mouseout', function() {
+        d3.select(this)
+          .style('transform', 'translateY(0)')
+          .style('box-shadow', '0 4px 12px rgba(59, 130, 246, 0.15)')
+          .style('background', 'linear-gradient(145deg, #ffffff, #f1f5f9)');
+      })
       .on('click', () => {
-        svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+        console.log('🔄 Complete reset button clicked!');
+        const currentTransform = d3.zoomTransform(svg.node()!);
+        console.log('Current zoom transform before reset:', currentTransform);
+        
+        // ズーム/パン位置のリセット
+        svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+        
+        // ファイル選択のリセット
+        if (onReset) {
+          onReset();
+          console.log('🎯 File selection reset called');
+        }
+        
+        // リセット完了後に確認
+        setTimeout(() => {
+          const afterTransform = d3.zoomTransform(svg.node()!);
+          console.log('Transform after reset:', afterTransform);
+        }, 600);
       });
 
-    // ズームアウト
-    controls
-      .append('button')
-      .text('-')
-      .style('padding', '5px 10px')
-      .style('cursor', 'pointer')
-      .style('border', '1px solid #d1d5db')
-      .style('background', 'white')
-      .style('border-radius', '4px')
-      .on('click', () => {
-        svg.transition().duration(300).call(zoom.scaleBy, 0.7);
-      });
-
-    // リセット
-    controls
-      .append('button')
-      .html('↻')
-      .style('padding', '5px 10px')
-      .style('cursor', 'pointer')
-      .style('border', '1px solid #d1d5db')
-      .style('background', 'white')
-      .style('border-radius', '4px')
-      .on('click', () => {
-        svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
-      });
-
-    return controls;
+    return resetButton;
   }, []);
 
   return {

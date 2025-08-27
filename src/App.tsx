@@ -48,6 +48,7 @@ function App() {
     changedFiles,
     handleFileSelect,
     handleImpactModeChange,
+    handleResetImpactMode,
   } = useFileFiltering(files);
 
   // URL履歴はuseFileStorageで自動復元されるため、ここでの処理は不要
@@ -64,6 +65,12 @@ function App() {
     } catch (error) {
       console.error('Directory picker エラー:', error);
     }
+  };
+
+  // 完全リセット関数（ファイル選択 + 影響範囲機能）
+  const handleCompleteReset = () => {
+    handleFileSelect(null);     // ファイル選択を解除
+    handleResetImpactMode();    // 影響範囲機能をリセット
   };
 
 
@@ -105,6 +112,8 @@ function App() {
             onFileFilterChange={setFileFilter}
             onImpactModeChange={handleImpactModeChange}
             onToggleMonitoring={isMonitoring ? stopMonitoring : () => startMonitoring(setFiles)}
+            onFileSelect={handleFileSelect}
+            onResetAll={handleCompleteReset}
           />
 
           <MainViewSection 
@@ -114,6 +123,7 @@ function App() {
             impactMode={impactMode}
             changedFiles={changedFiles}
             onFileSelect={handleFileSelect}
+            onResetImpactMode={handleResetImpactMode}
           />
         </>
       )}

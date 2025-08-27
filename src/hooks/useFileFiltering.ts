@@ -49,6 +49,11 @@ export const useFileFiltering = (files: GitHubFile[]) => {
     }
   };
 
+  const handleResetImpactMode = () => {
+    setImpactMode(false);
+    setChangedFiles([]);
+  };
+
   return {
     // Filter states
     fileFilter,
@@ -70,5 +75,6 @@ export const useFileFiltering = (files: GitHubFile[]) => {
     // Actions
     handleFileSelect,
     handleImpactModeChange,
+    handleResetImpactMode,
   };
 };

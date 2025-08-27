@@ -11,6 +11,7 @@ interface ForceGraphProps {
   onFileSelect?: (file: GitHubFile | null) => void;
   changedFiles?: string[];
   impactMode?: boolean;
+  onResetImpactMode?: () => void;
 }
 
 const ForceGraph: React.FC<ForceGraphProps> = ({
@@ -18,7 +19,8 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
   selectedFile,
   onFileSelect,
   changedFiles,
-  impactMode
+  impactMode,
+  onResetImpactMode
 }) => {
   return (
     <GraphContainer 
@@ -27,6 +29,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
       onFileSelect={onFileSelect}
       changedFiles={changedFiles}
       impactMode={impactMode}
+      onResetImpactMode={onResetImpactMode}
     />
   );
 };

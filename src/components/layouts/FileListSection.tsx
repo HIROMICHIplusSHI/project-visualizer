@@ -18,6 +18,8 @@ interface FileListSectionProps {
   onFileFilterChange: (filter: 'all' | 'withDeps' | 'main') => void;
   onImpactModeChange: (enabled: boolean) => void;
   onToggleMonitoring: () => void;
+  onFileSelect: (file: GitHubFile | null) => void;
+  onResetAll: () => void;
 }
 
 const FileListSection: React.FC<FileListSectionProps> = ({
@@ -33,6 +35,8 @@ const FileListSection: React.FC<FileListSectionProps> = ({
   onFileFilterChange,
   onImpactModeChange,
   onToggleMonitoring,
+  onFileSelect,
+  onResetAll,
 }) => {
   const handleImpactModeChange = (checked: boolean) => {
     onImpactModeChange(checked);
@@ -127,6 +131,36 @@ const FileListSection: React.FC<FileListSectionProps> = ({
             影響範囲
           </span>
         </label>
+
+        {/* 完全リセットボタン */}
+        <button
+          onClick={onResetAll}
+          style={{
+            marginLeft: '12px',
+            padding: '6px 12px',
+            backgroundColor: '#f3f4f6',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = '#e5e7eb';
+            e.currentTarget.style.borderColor = '#9ca3af';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = '#f3f4f6';
+            e.currentTarget.style.borderColor = '#d1d5db';
+          }}
+        >
+          🔄 リセット
+        </button>
 
         <span
           style={{

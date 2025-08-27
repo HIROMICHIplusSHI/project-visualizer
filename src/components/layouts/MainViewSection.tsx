@@ -13,6 +13,7 @@ interface MainViewSectionProps {
   impactMode: boolean;
   changedFiles: string[];
   onFileSelect: (file: GitHubFile | null) => void;
+  onResetImpactMode: () => void;
 }
 
 const MainViewSection: React.FC<MainViewSectionProps> = ({
@@ -22,6 +23,7 @@ const MainViewSection: React.FC<MainViewSectionProps> = ({
   impactMode,
   changedFiles,
   onFileSelect,
+  onResetImpactMode,
 }) => {
   return (
     <div style={{ height: 'calc(100vh - 350px)' }}>
@@ -49,22 +51,33 @@ const MainViewSection: React.FC<MainViewSectionProps> = ({
                       ? `${selectedFile.size} bytes`
                       : '不明'}
                   </p>
-                  {selectedFile.dependencies &&
-                    selectedFile.dependencies.length > 0 &&
-                    !selectedFile.name.endsWith('.tsx') && (
-                      <div>
-                        <p>
-                          <strong>依存関係:</strong>
-                        </p>
-                        <ul>
-                          {selectedFile.dependencies.map(
-                            (dep: string, i: number) => (
-                              <li key={i}>{dep}</li>
-                            )
-                          )}
-                        </ul>
-                      </div>
-                    )}
+                  
+                  {/* 基本情報表示後の拡張機能エリア */}
+                  <div style={{
+                    marginTop: '24px',
+                    padding: '16px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#64748b',
+                      marginBottom: '8px'
+                    }}>
+                      🔧 拡張機能
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: '#64748b',
+                      lineHeight: '1.5'
+                    }}>
+                      • <strong>依存関係分析</strong>: グラフビューの影響範囲可視化に統合済み<br />
+                      • <strong>AIファイル診断</strong>: 今後のバージョンで実装予定<br />
+                      • <strong>コード品質メトリクス</strong>: 将来的な機能拡張として検討中
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -90,6 +103,7 @@ const MainViewSection: React.FC<MainViewSectionProps> = ({
           onFileSelect={onFileSelect}
           impactMode={impactMode}
           changedFiles={changedFiles}
+          onResetImpactMode={onResetImpactMode}
         />
       )}
 
@@ -108,6 +122,7 @@ const MainViewSection: React.FC<MainViewSectionProps> = ({
               onFileSelect={onFileSelect}
               impactMode={impactMode}
               changedFiles={changedFiles}
+              onResetImpactMode={onResetImpactMode}
             />
           </div>
           <div
@@ -131,22 +146,33 @@ const MainViewSection: React.FC<MainViewSectionProps> = ({
                       ? `${selectedFile.size} bytes`
                       : '不明'}
                   </p>
-                  {selectedFile.dependencies &&
-                    selectedFile.dependencies.length > 0 &&
-                    !selectedFile.name.endsWith('.tsx') && (
-                      <div>
-                        <p>
-                          <strong>依存関係:</strong>
-                        </p>
-                        <ul>
-                          {selectedFile.dependencies.map(
-                            (dep: string, i: number) => (
-                              <li key={i}>{dep}</li>
-                            )
-                          )}
-                        </ul>
-                      </div>
-                    )}
+                  
+                  {/* 基本情報表示後の拡張機能エリア */}
+                  <div style={{
+                    marginTop: '24px',
+                    padding: '16px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#64748b',
+                      marginBottom: '8px'
+                    }}>
+                      🔧 拡張機能
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: '#64748b',
+                      lineHeight: '1.5'
+                    }}>
+                      • <strong>依存関係分析</strong>: グラフビューの影響範囲可視化に統合済み<br />
+                      • <strong>AIファイル診断</strong>: 今後のバージョンで実装予定<br />
+                      • <strong>コード品質メトリクス</strong>: 将来的な機能拡張として検討中
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (

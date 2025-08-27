@@ -26,18 +26,36 @@ export const useCanvasSize = ({ files, containerRef }: UseCanvasSizeProps): Canv
     if (!containerRef?.current) return;
     
     const updateContainerWidth = () => {
-      const width = containerRef.current?.clientWidth || 800;
-      setContainerWidth(width);
+      const newWidth = containerRef.current?.clientWidth || 800;
+      // デバウンス処理：幅の変化が大きい場合のみ更新
+      setContainerWidth((prevWidth) => {
+        const widthDiff = Math.abs(newWidth - prevWidth);
+        // 20px以上の変化がある場合のみ更新（小さな変化を無視）
+        if (widthDiff > 20) {
+          console.log(`📐 Container width changed: ${prevWidth} → ${newWidth}`);
+          return newWidth;
+        }
+        return prevWidth;
+      });
     };
     
     // 初期サイズ設定
     updateContainerWidth();
     
-    // リサイズ監視
-    const resizeObserver = new ResizeObserver(updateContainerWidth);
+    // リサイズ監視（デバウンス付き）
+    let timeoutId: NodeJS.Timeout;
+    const debouncedUpdate = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateContainerWidth, 150);
+    };
+    
+    const resizeObserver = new ResizeObserver(debouncedUpdate);
     resizeObserver.observe(containerRef.current);
     
-    return () => resizeObserver.disconnect();
+    return () => {
+      resizeObserver.disconnect();
+      clearTimeout(timeoutId);
+    };
   }, [containerRef]);
   
   // キャンバスサイズの計算（メモ化）
