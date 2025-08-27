@@ -32,7 +32,7 @@ function App() {
   const {
     isMonitoring,
     currentDirHandle,
-
+    setCurrentDirHandle,
     startMonitoring,
     stopMonitoring,
   } = useRealtimeMonitoring();
@@ -53,6 +53,18 @@ function App() {
   // URL履歴はuseFileStorageで自動復元されるため、ここでの処理は不要
 
   // Enhanced handleDirectoryPicker for real-time monitoring
+  const enhancedHandleDirectoryPicker = async () => {
+    try {
+      const dirHandle = await handleDirectoryPicker();
+      if (dirHandle) {
+        // リアルタイム監視用にディレクトリハンドルを設定
+        setCurrentDirHandle(dirHandle);
+        console.log('📁 ディレクトリハンドル取得:', dirHandle.name);
+      }
+    } catch (error) {
+      console.error('Directory picker エラー:', error);
+    }
+  };
 
 
   return (
@@ -63,7 +75,7 @@ function App() {
       
       <ProjectInputSection 
         show={files.length === 0} 
-        onDirectorySelect={handleDirectoryPicker}
+        onDirectorySelect={enhancedHandleDirectoryPicker}
         onLocalFolderSelect={handleLocalFolder}
         onURLSubmit={handleURLSubmit}
       />

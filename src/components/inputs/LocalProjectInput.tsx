@@ -212,14 +212,31 @@ const LocalProjectInput: React.FC<LocalProjectInputProps> = ({
 
       {/* セキュリティ情報 */}
       <div style={{
-        fontSize: '12px',
-        color: '#9ca3af',
-        textAlign: 'center',
-        lineHeight: '1.4',
+        backgroundColor: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: '6px',
+        padding: '12px',
         marginTop: '16px'
       }}>
-        セキュリティ: ブラウザはファイルシステムに直接アクセスしません。<br />
-        選択されたフォルダのみアクセス許可されます。
+        <div style={{ 
+          fontSize: '12px', 
+          fontWeight: '500', 
+          color: '#475569', 
+          marginBottom: '6px',
+          textAlign: 'center'
+        }}>
+          🔒 セキュリティとプライバシー
+        </div>
+        <div style={{
+          fontSize: '11px',
+          color: '#64748b',
+          lineHeight: '1.4',
+          textAlign: 'center'
+        }}>
+          • あなたのファイルは安全：ブラウザ内でのみ処理され、外部に送信されません<br />
+          • 選択したフォルダのみアクセス（他のフォルダには一切触れません）<br />
+          • <span style={{ color: '#ef4444', fontWeight: '500' }}>ページを更新すると、セキュリティのためリアルタイム監視がリセットされます</span>
+        </div>
       </div>
     </div>
   );
