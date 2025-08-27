@@ -1,5 +1,4 @@
 // src/App.tsx
-import { useEffect } from 'react';
 import './App.css';
 import Header from './components/Header';
 
@@ -16,7 +15,7 @@ import { useRecentUrls } from './hooks/useLocalStorage';
 
 function App() {
   // Custom hooks
-  const [recentUrls, setRecentUrls] = useRecentUrls();
+  const [recentUrls] = useRecentUrls();
   const {
     files,
     setFiles,
@@ -51,20 +50,7 @@ function App() {
     handleImpactModeChange,
   } = useFileFiltering(files);
 
-  // URL履歴の復元
-  useEffect(() => {
-    const saved = localStorage.getItem('recentUrls');
-    if (saved) {
-      try {
-        const urls = JSON.parse(saved);
-        if (Array.isArray(urls)) {
-          setRecentUrls(urls);
-        }
-      } catch (error) {
-        console.warn('URL履歴の復元に失敗:', error);
-      }
-    }
-  }, [setRecentUrls]);
+  // URL履歴はuseFileStorageで自動復元されるため、ここでの処理は不要
 
   // Enhanced handleDirectoryPicker for real-time monitoring
 

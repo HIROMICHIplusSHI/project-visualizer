@@ -30,17 +30,23 @@ export function useLocalStorage<T>(
 
   const setValue: SetValue<T> = useCallback((value) => {
     try {
-      // 関数の場合は現在の値で実行
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      
-      setStoredValue(valueToStore);
-      
-      // ローカルストレージに保存
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      // 関数の場合は現在の値で実行（setStoredValueの関数型を利用）
+      setStoredValue((currentValue) => {
+        const valueToStore = value instanceof Function ? value(currentValue) : value;
+        
+        // ローカルストレージに保存
+        try {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        } catch (error) {
+          console.warn(`Error saving to localStorage key "${key}":`, error);
+        }
+        
+        return valueToStore;
+      });
     } catch (error) {
       console.warn(`Error setting localStorage key "${key}":`, error);
     }
-  }, [key, storedValue]);
+  }, [key]);
 
   return [storedValue, setValue];
 }
