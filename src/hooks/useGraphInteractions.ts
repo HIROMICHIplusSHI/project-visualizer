@@ -1,11 +1,12 @@
 // hooks/useGraphInteractions.ts
-// グラフのインタラクション（ズーム、ドラッグ、クリック、ホバー）を管理するカスタムフック
-import { useCallback } from 'react';
-import * as d3 from 'd3';
+// D3.jsグラフインタラクション統合フック - 分離された専門フックを統合
+
 import type { GitHubFile } from '../services/githubApi';
-import type { D3Node, D3Link } from './useForceSimulation';
-import { getPerformanceSettings, calculateImpactLevel } from '../constants/graphStyles';
-import { nodeStyles, linkStyles } from '../constants/graphStyles';
+
+// 分離されたフックをインポート
+import { useZoomControls } from './useZoomControls';
+import { useDragBehavior } from './useDragBehavior';
+import { useNodeEvents } from './useNodeEvents';
 
 interface UseGraphInteractionsProps {
   files: GitHubFile[];
@@ -22,252 +23,29 @@ export const useGraphInteractions = ({
   changedFiles,
   impactMode
 }: UseGraphInteractionsProps) => {
-  const perfSettings = getPerformanceSettings(files.length);
+  // 各専門フックを初期化
+  const zoomControls = useZoomControls();
+  const dragBehavior = useDragBehavior();
+  const nodeEvents = useNodeEvents({
+    files,
+    onFileSelect,
+    selectedFile,
+    changedFiles,
+    impactMode
+  });
 
-  // ズーム機能の設定
-  const createZoomBehavior = useCallback((svg: d3.Selection<SVGSVGElement, unknown, null, undefined>) => {
-    const g = svg.append('g');
-    
-    const zoom = d3
-      .zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 4])
-      .on('zoom', (event) => {
-        g.attr('transform', event.transform);
-      });
-
-    svg.call(zoom);
-    return { g, zoom };
-  }, []);
-
-  // ズームコントロールボタンの作成
-  const createZoomControls = useCallback((
-    parentElement: HTMLElement,
-    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-    zoom: d3.ZoomBehavior<SVGSVGElement, unknown>
-  ) => {
-    const controls = d3
-      .select(parentElement)
-      .append('div')
-      .style('position', 'absolute')
-      .style('top', '10px')
-      .style('left', '10px')
-      .style('display', 'flex')
-      .style('gap', '5px')
-      .style('z-index', '10');
-
-    // ズームイン
-    controls
-      .append('button')
-      .text('+')
-      .style('padding', '5px 10px')
-      .style('cursor', 'pointer')
-      .style('border', '1px solid #d1d5db')
-      .style('background', 'white')
-      .style('border-radius', '4px')
-      .on('click', () => {
-        svg.transition().duration(300).call(zoom.scaleBy, 1.3);
-      });
-
-    // ズームアウト
-    controls
-      .append('button')
-      .text('-')
-      .style('padding', '5px 10px')
-      .style('cursor', 'pointer')
-      .style('border', '1px solid #d1d5db')
-      .style('background', 'white')
-      .style('border-radius', '4px')
-      .on('click', () => {
-        svg.transition().duration(300).call(zoom.scaleBy, 0.7);
-      });
-
-    // リセット
-    controls
-      .append('button')
-      .html('↻')
-      .style('padding', '5px 10px')
-      .style('cursor', 'pointer')
-      .style('border', '1px solid #d1d5db')
-      .style('background', 'white')
-      .style('border-radius', '4px')
-      .on('click', () => {
-        svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
-      });
-
-    return controls;
-  }, []);
-
-  // ドラッグ機能の設定
-  const createDragBehavior = useCallback((
-    simulation: d3.Simulation<D3Node, D3Link>
-  ) => {
-    return d3
-      .drag<SVGGElement, D3Node>()
-      .on('start', (event, d) => {
-        if (!event.active) simulation.alphaTarget(0.3).restart();
-        d.fx = d.x;
-        d.fy = d.y;
-      })
-      .on('drag', (event, d) => {
-        d.fx = event.x;
-        d.fy = event.y;
-      })
-      .on('end', (event, d) => {
-        if (!event.active) simulation.alphaTarget(0);
-        d.fx = null;
-        d.fy = null;
-      });
-  }, []);
-
-  // クリックイベントハンドラー
-  const handleNodeClick = useCallback((_event: any, d: D3Node) => {
-    if (onFileSelect) {
-      const selectedGitHubFile = files.find((f) => f.id === d.id);
-      onFileSelect(selectedGitHubFile || null);
-    }
-  }, [files, onFileSelect]);
-
-  // ホバーイベントハンドラー（エンター）
-  const handleNodeMouseEnter = useCallback((
-    nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
-    linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
-    dependencyMap: Record<string, string[]>
-  ) => {
-    if (!perfSettings.showHoverEffects) return;
-
-    return function (this: SVGGElement, _event: any, d: D3Node) {
-      // ノードのホバー効果
-      d3.select(this)
-        .select('circle')
-        .transition()
-        .duration(perfSettings.animationDuration)
-        .attr('r', nodeStyles.circle.hoverRadius)
-        .attr('stroke-width', nodeStyles.circle.hoverStrokeWidth);
-
-      d3.select(this)
-        .select('path')
-        .transition()
-        .duration(perfSettings.animationDuration)
-        .attr(
-          'transform',
-          `translate(${nodeStyles.icon.hoverTranslateX}, ${nodeStyles.icon.hoverTranslateY}) scale(${nodeStyles.icon.hoverScale})`
-        );
-
-      // 関連リンクの強調
-      linkElements
-        .style('stroke', (l) => {
-          const link = l as D3Link;
-          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-          
-          if (sourceId === d.id || targetId === d.id) {
-            if (impactMode && changedFiles && changedFiles.length > 0) {
-              // Impact色があれば優先
-              return linkStyles.impact.stroke;
-            }
-            return linkStyles.hover.stroke;
-          }
-          
-          return linkStyles.default.stroke;
-        })
-        .style('stroke-width', (l) => {
-          const link = l as D3Link;
-          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-          
-          if (sourceId === d.id || targetId === d.id) {
-            if (impactMode && changedFiles && changedFiles.length > 0) {
-              return linkStyles.impact.strokeWidth;
-            }
-            return linkStyles.hover.strokeWidth;
-          }
-          
-          return linkStyles.default.strokeWidth;
-        });
-    };
-  }, [perfSettings, impactMode, changedFiles]);
-
-  // ホバーイベントハンドラー（リーブ）
-  const handleNodeMouseLeave = useCallback((
-    nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
-    linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
-    dependencyMap: Record<string, string[]>
-  ) => {
-    if (!perfSettings.showHoverEffects) return;
-
-    return function (this: SVGGElement) {
-      // ノードを元に戻す
-      d3.select(this)
-        .select('circle')
-        .transition()
-        .duration(perfSettings.animationDuration)
-        .attr('r', (d) => {
-          const targetFile = files.find(f => f.id === (d as D3Node).id);
-          // calculateNodeSize関数を使用する必要があるため、ここでは基本サイズを使用
-          return 24; // 基本サイズ - 後でcalculateNodeSizeを使用
-        })
-        .attr('stroke-width', nodeStyles.circle.strokeWidth);
-
-      d3.select(this)
-        .select('path')
-        .transition()
-        .duration(perfSettings.animationDuration)
-        .attr(
-          'transform',
-          `translate(${nodeStyles.icon.translateX}, ${nodeStyles.icon.translateY}) scale(${nodeStyles.icon.scale})`
-        );
-
-      // リンクを元に戻す（Impact Visualizationモードを考慮）
-      linkElements
-        .style('stroke', (d) => {
-          // Impact Visualizationモードの場合は適切な色を設定
-          if (impactMode && changedFiles && changedFiles.length > 0) {
-            const link = d as D3Link;
-            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-            const sourceFile = files.find(f => f.id === sourceId);
-            const targetFile = files.find(f => f.id === targetId);
-            
-            if (sourceFile?.path && targetFile?.path) {
-              const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
-              const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
-              
-              if (sourceLevel >= 0 || targetLevel >= 0) {
-                return linkStyles.impact.stroke; // Impact色を維持
-              }
-            }
-          }
-          return linkStyles.default.stroke;
-        })
-        .style('stroke-width', (d) => {
-          // Impact Visualizationモードの場合は適切な太さを設定
-          if (impactMode && changedFiles && changedFiles.length > 0) {
-            const link = d as D3Link;
-            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-            const sourceFile = files.find(f => f.id === sourceId);
-            const targetFile = files.find(f => f.id === targetId);
-            
-            if (sourceFile?.path && targetFile?.path) {
-              const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
-              const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
-              
-              if (sourceLevel >= 0 || targetLevel >= 0) {
-                return linkStyles.impact.strokeWidth; // Impact線の太さを維持
-              }
-            }
-          }
-          return linkStyles.default.strokeWidth;
-        });
-    };
-  }, [perfSettings, files, impactMode, changedFiles]);
-
+  // 統合されたインターフェースを返す
   return {
-    createZoomBehavior,
-    createZoomControls,
-    createDragBehavior,
-    handleNodeClick,
-    handleNodeMouseEnter,
-    handleNodeMouseLeave
+    // ズーム関連機能
+    createZoomBehavior: zoomControls.createZoomBehavior,
+    createZoomControls: zoomControls.createZoomControls,
+    
+    // ドラッグ機能
+    createDragBehavior: dragBehavior.createDragBehavior,
+    
+    // ノードイベント機能
+    handleNodeClick: nodeEvents.handleNodeClick,
+    handleNodeMouseEnter: nodeEvents.handleNodeMouseEnter,
+    handleNodeMouseLeave: nodeEvents.handleNodeMouseLeave,
   };
 };
