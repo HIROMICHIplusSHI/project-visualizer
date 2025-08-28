@@ -21,19 +21,19 @@ interface UseNodeEventsReturn {
   handleNodeMouseEnter: (
     nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
     linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
-    dependencyMap: Record<string, string[]>
+    _dependencyMap: Record<string, string[]>
   ) => ((this: SVGGElement, _event: any, d: D3Node) => void) | undefined;
   handleNodeMouseLeave: (
     nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
     linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
-    dependencyMap: Record<string, string[]>
+    _dependencyMap: Record<string, string[]>
   ) => ((this: SVGGElement) => void) | undefined;
 }
 
 export const useNodeEvents = ({
   files,
   onFileSelect,
-  selectedFile,
+  selectedFile: _selectedFile,
   changedFiles,
   impactMode
 }: UseNodeEventsProps): UseNodeEventsReturn => {
@@ -49,9 +49,9 @@ export const useNodeEvents = ({
 
   // ホバーイベントハンドラー（エンター）
   const handleNodeMouseEnter = useCallback((
-    nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
+    _nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
     linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
-    dependencyMap: Record<string, string[]>
+    __dependencyMap: Record<string, string[]>
   ) => {
     if (!perfSettings.showHoverEffects) return;
 
@@ -111,9 +111,9 @@ export const useNodeEvents = ({
 
   // ホバーイベントハンドラー（リーブ）
   const handleNodeMouseLeave = useCallback((
-    nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
+    _nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
     linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
-    dependencyMap: Record<string, string[]>
+    __dependencyMap: Record<string, string[]>
   ) => {
     if (!perfSettings.showHoverEffects) return;
 
@@ -155,8 +155,8 @@ export const useNodeEvents = ({
             const targetFile = files.find(f => f.id === targetId);
             
             if (sourceFile?.path && targetFile?.path) {
-              const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
-              const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
+              const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, _dependencyMap);
+              const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, _dependencyMap);
               
               if (sourceLevel >= 0 || targetLevel >= 0) {
                 return linkStyles.impact.stroke; // Impact色を維持
@@ -175,8 +175,8 @@ export const useNodeEvents = ({
             const targetFile = files.find(f => f.id === targetId);
             
             if (sourceFile?.path && targetFile?.path) {
-              const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, dependencyMap);
-              const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, dependencyMap);
+              const sourceLevel = calculateImpactLevel(changedFiles, sourceFile.path, _dependencyMap);
+              const targetLevel = calculateImpactLevel(changedFiles, targetFile.path, _dependencyMap);
               
               if (sourceLevel >= 0 || targetLevel >= 0) {
                 return linkStyles.impact.strokeWidth; // Impact線の太さを維持

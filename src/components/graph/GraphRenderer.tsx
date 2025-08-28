@@ -42,7 +42,7 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
   onFileSelect,
   changedFiles,
   impactMode,
-  onResetImpactMode,
+  onResetImpactMode: _onResetImpactMode,
   containerRef
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -94,7 +94,7 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
       .style('background', 'white');
 
     // ズーム機能の設定
-    const { g, zoom } = createZoomBehavior(svg);
+    const { g } = createZoomBehavior(svg);
 
 
     // Impact visualization用の依存関係マップ

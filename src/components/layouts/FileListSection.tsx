@@ -35,7 +35,7 @@ const FileListSection: React.FC<FileListSectionProps> = ({
   onFileFilterChange,
   onImpactModeChange,
   onToggleMonitoring,
-  onFileSelect,
+  onFileSelect: _onFileSelect,
   onResetAll,
 }) => {
   const handleImpactModeChange = (checked: boolean) => {

@@ -1,7 +1,7 @@
 // hooks/useLocalStorage.ts
 // ローカルストレージ管理用カスタムフック - App.tsxから抽出
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 type SetValue<T> = (value: T | ((prevValue: T) => T)) => void;
 

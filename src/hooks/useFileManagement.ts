@@ -1,8 +1,7 @@
 // hooks/useFileManagement.ts
 // 統合ファイル管理フック - 分離された専門フックを統合
 
-import { useState, useCallback } from 'react';
-import type { GitHubFile } from '../services/githubApi';
+import { useCallback } from 'react';
 
 // 分離されたフックをインポート
 import { useGitHubApi } from './useGitHubApi';
