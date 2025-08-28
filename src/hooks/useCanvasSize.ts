@@ -1,7 +1,7 @@
 // src/hooks/useCanvasSize.ts
 // 動的キャンバスサイズ計算専用カスタムフック
 
-import { useMemo, useRef, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { calculateCanvasSize } from '../utils/graphHelpers';
 
 interface UseCanvasSizeProps {
@@ -43,7 +43,7 @@ export const useCanvasSize = ({ files, containerRef }: UseCanvasSizeProps): Canv
     updateContainerWidth();
     
     // リサイズ監視（デバウンス付き）
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: number;
     const debouncedUpdate = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(updateContainerWidth, 150);

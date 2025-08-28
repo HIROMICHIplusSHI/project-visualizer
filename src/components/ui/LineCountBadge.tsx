@@ -2,7 +2,6 @@
 // 行数表示用のバッジコンポーネント
 
 import React from 'react';
-import { formatLineCount } from '../../utils/fileUtils';
 
 interface LineCountBadgeProps {
   lineCount?: number;

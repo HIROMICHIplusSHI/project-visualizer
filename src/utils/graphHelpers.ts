@@ -222,7 +222,7 @@ export const createCustomLayoutForce = (
             }
           });
           
-          if (closestHub && closestHub.x !== undefined && closestHub.y !== undefined) {
+          if (closestHub && typeof closestHub.x === 'number' && typeof closestHub.y === 'number') {
             const hubSize = calculateNodeSize(
               files.find(f => f.id === closestHub!.id)!, files
             );

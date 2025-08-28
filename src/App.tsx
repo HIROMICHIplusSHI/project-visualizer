@@ -12,6 +12,7 @@ import FileListSection from './components/layouts/FileListSection';
 import MainViewSection from './components/layouts/MainViewSection';
 import StatusSection from './components/layouts/StatusSection';
 import { useRecentUrls } from './hooks/useLocalStorage';
+import { sampleReactProject } from './data/sampleReactProject';
 
 function App() {
   // Custom hooks
@@ -53,6 +54,17 @@ function App() {
 
   // URL履歴はuseFileStorageで自動復元されるため、ここでの処理は不要
 
+  // デモ機能のハンドラー
+  const handleDemoClick = () => {
+    setFiles(sampleReactProject);
+    setViewMode('split'); // デモでは分割ビューを表示
+    // 影響範囲機能をデモンストレーション用に有効化
+    setTimeout(() => {
+      handleImpactModeChange(true); // 影響範囲モードを有効化
+      // changedFilesは内部的に設定される
+    }, 1000); // 1秒後に影響範囲を表示
+  };
+
   // Enhanced handleDirectoryPicker for real-time monitoring
   const enhancedHandleDirectoryPicker = async () => {
     try {
@@ -78,7 +90,7 @@ function App() {
     <div className='App'>
       <Header title='Project Visualizer' onNewProject={clearAll} />
       
-      <WelcomeSection show={files.length === 0} />
+      <WelcomeSection show={files.length === 0} onDemoClick={handleDemoClick} />
       
       <ProjectInputSection 
         show={files.length === 0} 

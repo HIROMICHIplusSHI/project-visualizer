@@ -43,6 +43,14 @@ const GitHubRepoInput: React.FC<GitHubRepoInputProps> = ({
           margin: 0
         }}>
           GitHubリポジトリ
+          <span style={{
+            fontSize: '14px',
+            fontWeight: 'normal',
+            color: '#ef4444',
+            marginLeft: '8px'
+          }}>
+            (開発停止中)
+          </span>
         </h3>
         <p style={{
           fontSize: '16px',

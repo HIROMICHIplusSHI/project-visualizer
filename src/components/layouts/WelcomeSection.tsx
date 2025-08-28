@@ -3,9 +3,10 @@
 
 interface WelcomeSectionProps {
   show: boolean;
+  onDemoClick: () => void;
 }
 
-const WelcomeSection: React.FC<WelcomeSectionProps> = ({ show }) => {
+const WelcomeSection: React.FC<WelcomeSectionProps> = ({ show, onDemoClick }) => {
   if (!show) return null;
 
   return (
@@ -206,6 +207,70 @@ const WelcomeSection: React.FC<WelcomeSectionProps> = ({ show }) => {
           }}>
             ※ Reactプロジェクトに最適化されていますが、TypeScript/JavaScriptファイルも部分的にサポート
           </p>
+        </div>
+
+        {/* デモ体験セクション */}
+        <div style={{
+          marginTop: '40px',
+          padding: '24px',
+          backgroundColor: '#fef3c7',
+          border: '2px solid #f59e0b',
+          borderRadius: '12px',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            fontSize: '20px',
+            marginBottom: '8px'
+          }}>
+            🎬
+          </div>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: '#92400e',
+            marginBottom: '8px'
+          }}>
+            すぐに体験してみる
+          </h3>
+          <p style={{
+            fontSize: '14px',
+            color: '#92400e',
+            marginBottom: '16px',
+            lineHeight: '1.5'
+          }}>
+            サンプルのReact Todoアプリで機能をお試しください<br />
+            <small>(ファイルアップロード不要・即座に表示)</small>
+          </p>
+          <button
+            onClick={onDemoClick}
+            style={{
+              backgroundColor: '#f59e0b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 24px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#d97706';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = '#f59e0b';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            React プロジェクトをデモ体験
+          </button>
         </div>
       </div>
     </div>

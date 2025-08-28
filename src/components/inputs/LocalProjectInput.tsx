@@ -129,6 +129,35 @@ const LocalProjectInput: React.FC<LocalProjectInputProps> = ({
         </div>
       </div>
 
+      {/* セキュリティ情報 */}
+      <div style={{
+        backgroundColor: '#f0fdf4',
+        border: '1px solid #bbf7d0',
+        borderRadius: '6px',
+        padding: '12px',
+        marginBottom: '20px'
+      }}>
+        <div style={{ 
+          fontSize: '12px', 
+          fontWeight: '500', 
+          color: '#15803d', 
+          marginBottom: '6px',
+          textAlign: 'center'
+        }}>
+          🔒 セキュリティとプライバシー
+        </div>
+        <div style={{
+          fontSize: '11px',
+          color: '#166534',
+          lineHeight: '1.4',
+          textAlign: 'center'
+        }}>
+          • あなたのファイルは安全：ブラウザ内でのみ処理され、外部に送信されません<br />
+          • 選択したフォルダのみアクセス（他のフォルダには一切触れません）<br />
+          • <span style={{ color: '#dc2626', fontWeight: '500' }}>ページを更新すると、セキュリティのためリアルタイム監視がリセットされます</span>
+        </div>
+      </div>
+
       {/* 従来の方法（非推奨） */}
       <div style={{
         borderTop: '1px solid #e5e7eb',
@@ -210,34 +239,7 @@ const LocalProjectInput: React.FC<LocalProjectInputProps> = ({
         </div>
       </div>
 
-      {/* セキュリティ情報 */}
-      <div style={{
-        backgroundColor: '#f8fafc',
-        border: '1px solid #e2e8f0',
-        borderRadius: '6px',
-        padding: '12px',
-        marginTop: '16px'
-      }}>
-        <div style={{ 
-          fontSize: '12px', 
-          fontWeight: '500', 
-          color: '#475569', 
-          marginBottom: '6px',
-          textAlign: 'center'
-        }}>
-          🔒 セキュリティとプライバシー
-        </div>
-        <div style={{
-          fontSize: '11px',
-          color: '#64748b',
-          lineHeight: '1.4',
-          textAlign: 'center'
-        }}>
-          • あなたのファイルは安全：ブラウザ内でのみ処理され、外部に送信されません<br />
-          • 選択したフォルダのみアクセス（他のフォルダには一切触れません）<br />
-          • <span style={{ color: '#ef4444', fontWeight: '500' }}>ページを更新すると、セキュリティのためリアルタイム監視がリセットされます</span>
-        </div>
-      </div>
+
     </div>
   );
 };

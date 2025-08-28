@@ -5,8 +5,6 @@ import React, { useRef } from 'react';
 import type { GitHubFile } from '../../services/githubApi';
 import GraphRenderer from './GraphRenderer';
 import FileTreeExplorer from '../FileTreeExplorer';
-import { GRAPH_CONFIG } from '../../constants/graphConfig';
-import { getPerformanceSettings } from '../../constants/graphStyles';
 
 interface GraphContainerProps {
   files: GitHubFile[];
@@ -28,17 +26,6 @@ const GraphContainer: React.FC<GraphContainerProps> = ({
   isInSplitView = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const perfSettings = getPerformanceSettings(files.length);
-  
-  // パフォーマンスレベルに応じた表示テキスト
-  const getPerformanceLabel = (level: string) => {
-    switch (level) {
-      case 'light': return `⚡ ライトモード（${files.length}ファイル）`;
-      case 'high': return `🚀 高速モード（${files.length}ファイル）`;
-      case 'extreme': return `⚡🚀 極速モード（${files.length}ファイル）`;
-      default: return null;
-    }
-  };
 
   return (
     <div
@@ -104,7 +91,7 @@ const GraphContainer: React.FC<GraphContainerProps> = ({
             changedFiles={changedFiles}
             impactMode={impactMode}
             onResetImpactMode={onResetImpactMode}
-            containerRef={containerRef}
+            containerRef={containerRef as React.RefObject<HTMLDivElement>}
           />
         </div>
       </div>
