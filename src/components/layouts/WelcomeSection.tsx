@@ -238,7 +238,7 @@ const WelcomeSection: React.FC<WelcomeSectionProps> = ({ show, onDemoClick }) =>
             marginBottom: '16px',
             lineHeight: '1.5'
           }}>
-            サンプルのReact Todoアプリで機能をお試しください<br />
+            サンプルReactプロジェクトで機能をお試しください<br />
             <small>(ファイルアップロード不要・即座に表示)</small>
           </p>
           <button
