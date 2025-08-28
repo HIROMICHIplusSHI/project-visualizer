@@ -168,7 +168,7 @@ export const createDependencyMap = (files: GitHubFile[]): Record<string, string[
 export const createCustomLayoutForce = (
   nodes: D3Node[], 
   files: GitHubFile[], 
-  hubFiles: D3Node[],
+  _hubFiles: D3Node[],
   width: number, 
   height: number
 ) => {
@@ -209,7 +209,7 @@ export const createCustomLayoutForce = (
           let minDistance = Infinity;
           
           hubFiles.forEach(hubFile => {
-            const hubNode = nodes.find(n => n.id === hubFile.id);
+            const hubNode = nodes.find(n => n.id === hubFile.id) as any;
             if (hubNode && hubNode.x !== undefined && hubNode.y !== undefined) {
               const dist = Math.sqrt(
                 Math.pow((node.x || 0) - hubNode.x, 2) + 
@@ -222,22 +222,22 @@ export const createCustomLayoutForce = (
             }
           });
           
-          if (closestHub && typeof closestHub.x === 'number' && typeof closestHub.y === 'number') {
+          if (closestHub && typeof (closestHub as any).x === 'number' && typeof (closestHub as any).y === 'number') {
             const hubSize = calculateNodeSize(
-              files.find(f => f.id === closestHub!.id)!, files
+              files.find(f => f.id === (closestHub as any)!.id)!, files
             );
             const targetRadius = circleRadius.base + (hubSize - hubThreshold) * circleRadius.multiplier;
             
-            const dx = (node.x || 0) - closestHub.x;
-            const dy = (node.y || 0) - closestHub.y;
+            const dx = (node.x || 0) - (closestHub as any).x;
+            const dy = (node.y || 0) - (closestHub as any).y;
             const currentDistance = Math.sqrt(dx * dx + dy * dy);
             
             if (currentDistance > 0) {
               const normalizedDx = dx / currentDistance;
               const normalizedDy = dy / currentDistance;
               
-              const targetX = closestHub.x + normalizedDx * targetRadius;
-              const targetY = closestHub.y + normalizedDy * targetRadius;
+              const targetX = (closestHub as any).x + normalizedDx * targetRadius;
+              const targetY = (closestHub as any).y + normalizedDy * targetRadius;
               
               const strength = dependentCircleStrength * alpha;
               node.vx = (node.vx || 0) + (targetX - (node.x || 0)) * strength;
