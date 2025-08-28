@@ -74,13 +74,11 @@ export const useRealtimeMonitoring = () => {
         return;
       }
 
-      console.log(
-        `ファイル数: 旧=${oldFiles.length}, 新=${GitHubFile.length}`
-      );
+      // File count comparison
 
       if (GitHubFile.length !== oldFiles.length) {
         hasChanges = true;
-        console.log('📊 ファイル数の変更を検出');
+        // File count change detected
       } else {
         for (let i = 0; i < GitHubFile.length; i++) {
           const newFile = GitHubFile[i];

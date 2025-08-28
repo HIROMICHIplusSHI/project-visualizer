@@ -32,7 +32,7 @@ export const useCanvasSize = ({ files, containerRef }: UseCanvasSizeProps): Canv
         const widthDiff = Math.abs(newWidth - prevWidth);
         // 20px以上の変化がある場合のみ更新（小さな変化を無視）
         if (widthDiff > 20) {
-          console.log(`📐 Container width changed: ${prevWidth} → ${newWidth}`);
+          // Container width changed
           return newWidth;
         }
         return prevWidth;
@@ -62,7 +62,7 @@ export const useCanvasSize = ({ files, containerRef }: UseCanvasSizeProps): Canv
   const canvasSize = useMemo(() => {
     const { width, height } = calculateCanvasSize(files.length, containerWidth);
     
-    console.log(`📐 Canvas size: ${width}x${height} for ${files.length} files`);
+    // Canvas size calculated
     
     return { width, height };
   }, [files.length, containerWidth]);

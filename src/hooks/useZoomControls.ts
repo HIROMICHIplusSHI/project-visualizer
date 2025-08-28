@@ -26,7 +26,7 @@ export const useZoomControls = (): UseZoomControlsReturn => {
       .zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 4])
       .on('zoom', (event) => {
-        console.log('🔍 Zoom event:', event.transform);
+        // Zoom event handling
         g.attr('transform', event.transform);
       });
 
@@ -41,7 +41,7 @@ export const useZoomControls = (): UseZoomControlsReturn => {
     zoom: d3.ZoomBehavior<SVGSVGElement, unknown>,
     onReset?: () => void
   ) => {
-    console.log('🔧 Creating reset button...', { parentElement, svg, zoom });
+    // Creating reset button
     const resetButton = d3
       .select(parentElement)
       .append('div')
@@ -78,9 +78,9 @@ export const useZoomControls = (): UseZoomControlsReturn => {
           .style('background', 'linear-gradient(145deg, #ffffff, #f1f5f9)');
       })
       .on('click', () => {
-        console.log('🔄 Complete reset button clicked!');
+        // Reset button clicked
         const currentTransform = d3.zoomTransform(svg.node()!);
-        console.log('Current zoom transform before reset:', currentTransform);
+        // Current zoom transform before reset
         
         // ズーム/パン位置のリセット
         svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
@@ -88,13 +88,13 @@ export const useZoomControls = (): UseZoomControlsReturn => {
         // ファイル選択のリセット
         if (onReset) {
           onReset();
-          console.log('🎯 File selection reset called');
+          // File selection reset called
         }
         
         // リセット完了後に確認
         setTimeout(() => {
           const afterTransform = d3.zoomTransform(svg.node()!);
-          console.log('Transform after reset:', afterTransform);
+          // Transform after reset
         }, 600);
       });
 
