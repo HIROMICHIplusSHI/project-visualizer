@@ -1,69 +1,116 @@
-# React + TypeScript + Vite
+# プロジェクト可視化ツール
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Reactプロジェクトの構造と依存関係を可視化するWebアプリケーションです。初学者がReactプロジェクトの構造を理解しやすくするために開発されました。
 
-Currently, two official plugins are available:
+## 概要
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+このツールは主にReactプロジェクトを対象とし、コンポーネント間の依存関係やプロジェクト構造をインタラクティブなグラフで表示します。プログラミング学習者がReactアプリケーションの全体像を把握できるよう設計されています。
 
-## Expanding the ESLint configuration
+## 機能
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 主要機能
+- **Reactプロジェクト対応**: TypeScript、JavaScript、CSS、JSONファイルを解析
+- **依存関係グラフ**: D3.jsによるインタラクティブな関係図
+- **複数の入力方法**: ローカルファイル選択とDirectory Picker API
+- **分割ビュー**: ファイルツリーとグラフの同時表示
+- **デモモード**: サンプルReact Todoプロジェクトですぐに動作確認可能
+- **影響分析**: ファイル変更の影響範囲を視覚化
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 制限事項
+- **Reactプロジェクト専用**: 他の言語やフレームワークには対応していません
+- **GitHubリポジトリ機能**: 現在開発停止中です
+- **ブラウザ制限**: 最新のChrome/Edgeで最適に動作します
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+## 技術スタック
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- **フロントエンド**: React 18 + TypeScript
+- **可視化**: D3.js
+- **ビルドツール**: Vite
+- **スタイル**: CSS-in-JS
+
+## インストール
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/HIROMICHIplusSHI/project-visualizer.git
+
+# プロジェクトディレクトリに移動
+cd project-visualizer
+
+# 依存関係をインストール
+npm install
+
+# 開発サーバー開始
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 使い方
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 推奨：デモ機能
+1. アプリケーションを開く
+2. 「デモ」ボタンをクリック
+3. サンプルReact Todoプロジェクトの構造を確認
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### ローカルReactプロジェクトの解析
+
+#### Directory Picker（推奨）
+1. 「Directory Picker」を選択
+2. 分析したいReactプロジェクトフォルダを選択
+3. ファイル構造とコンポーネントの依存関係を確認
+
+#### ファイルアップロード
+1. 「ローカルファイル」を選択
+2. Reactプロジェクトのフォルダを選択
+3. 解析結果をグラフで確認
+
+### GitHubリポジトリ（開発停止中）
+現在この機能は開発を停止しています。将来的な再開は未定です。
+
+## プロジェクト構造
+
 ```
+src/
+├── components/          # UIコンポーネント
+│   ├── graph/          # グラフ表示関連
+│   ├── inputs/         # 入力UI
+│   └── layouts/        # レイアウト
+├── hooks/              # カスタムReactフック
+├── services/           # データ処理
+├── utils/              # ユーティリティ関数
+├── constants/          # 設定値
+└── data/               # サンプルデータ
+```
+
+## 開発について
+
+### 学習目的
+このプロジェクトは以下の学習を目的として作成されました：
+- Reactアプリケーションの構造理解
+- D3.jsとReactの連携
+- TypeScriptでの型定義
+- ファイル依存関係の解析方法
+
+### 初学者向け設計
+- **わかりやすいUI**: 直感的な操作方法
+- **段階的な学習**: デモから実際のプロジェクト分析へ
+- **視覚的理解**: グラフによる構造の可視化
+
+### 開発過程の記録
+コードにはデバッグ用のconsole.logが残されており、開発時の試行錯誤の過程を確認できます。これは学習プロセスの記録として意図的に残してあります。
+
+## ブラウザ対応
+
+- **推奨**: Chrome 86+ / Edge 86+
+- **制限あり**: Firefox 72+（一部機能制限）
+- **基本機能**: Safari 14+
+
+## 今後の課題
+
+- 他のフレームワーク対応の検討
+- パフォーマンスの改善
+- UIの使いやすさ向上
+- GitHubリポジトリ機能の再開発
+
+## ライセンス
+
+MITライセンス - 学習目的での利用を歓迎します。
