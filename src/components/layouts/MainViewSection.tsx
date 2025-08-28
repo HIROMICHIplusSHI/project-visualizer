@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { GitHubFile } from '../../services/githubApi';
-import ProjectTreeView from '../ProjectTreeView';
+import FileTreeExplorer from '../FileTreeExplorer';
 import ForceGraph from '../ForceGraph';
 
 interface MainViewSectionProps {
@@ -30,7 +30,7 @@ const MainViewSection: React.FC<MainViewSectionProps> = ({
       {/* リストビュー */}
       {viewMode === 'list' && (
         <div style={{ display: 'flex', height: '100%' }}>
-          <ProjectTreeView
+          <FileTreeExplorer
             files={filteredFiles}
             selectedFile={selectedFile}
             onFileSelect={onFileSelect}
@@ -110,7 +110,7 @@ const MainViewSection: React.FC<MainViewSectionProps> = ({
       {/* 分割ビュー */}
       {viewMode === 'split' && (
         <div style={{ display: 'flex', height: '100%' }}>
-          <ProjectTreeView
+          <FileTreeExplorer
             files={filteredFiles}
             selectedFile={selectedFile}
             onFileSelect={onFileSelect}
