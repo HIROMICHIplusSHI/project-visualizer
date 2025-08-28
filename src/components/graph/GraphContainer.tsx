@@ -4,6 +4,7 @@
 import React, { useRef } from 'react';
 import type { GitHubFile } from '../../services/githubApi';
 import GraphRenderer from './GraphRenderer';
+import FileTreeExplorer from '../FileTreeExplorer';
 import { GRAPH_CONFIG } from '../../constants/graphConfig';
 import { getPerformanceSettings } from '../../constants/graphStyles';
 
@@ -43,65 +44,69 @@ const GraphContainer: React.FC<GraphContainerProps> = ({
     <div
       ref={containerRef}
       style={{
-        padding: isInSplitView ? '0' : '20px', // 分割時は余白なし
-        backgroundColor: isInSplitView ? '#ffffff' : '#f9fafb', // 分割時は白背景
+        padding: isInSplitView ? '0' : '20px',
+        backgroundColor: isInSplitView ? '#ffffff' : '#f9fafb',
         borderRadius: isInSplitView ? '0' : '8px',
         margin: '0',
         boxShadow: isInSplitView ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.1)',
         position: 'relative',
         height: '100%',
-        overflow: 'auto',
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      {/* ヘッダー情報 */}
-      {!isInSplitView && (
-        <>
-          <h3
-            style={{
-              textAlign: 'center',
-              color: '#374151',
-              margin: '0 0 8px 0',
-              fontSize: '18px',
-              fontWeight: '600'
-            }}
-          >
-            依存関係グラフ
-          </h3>
-          
-          <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>
-            線は依存関係を表します。ホバーで関連ファイルを強調表示
-            {perfSettings.isPerformanceMode && (
-              <span style={{ color: '#f59e0b', marginLeft: '10px' }}>
-                {getPerformanceLabel(perfSettings.performanceLevel)}
-              </span>
-            )}
-          </p>
-        </>
-      )}
 
-      {/* SVGコンテナ */}
+
+      {/* メインコンテンツ（サイドパネル + グラフ） */}
       <div
         style={{
-          width: '100%',
-          height: isInSplitView ? 'calc(100% - 10px)' : 'fit-content',
-          overflow: 'auto',
-          border: isInSplitView ? 'none' : '1px solid #e5e7eb',
-          borderRadius: isInSplitView ? '0' : '8px',
-          backgroundColor: 'white',
-          minHeight: isInSplitView ? '300px' : 'auto',
+          flex: 1,
+          display: 'flex',
+          overflow: 'hidden',
+          gap: '0'
         }}
       >
-        <GraphRenderer 
-          files={files}
-          selectedFile={selectedFile}
-          onFileSelect={onFileSelect}
-          changedFiles={changedFiles}
-          impactMode={impactMode}
-          onResetImpactMode={onResetImpactMode}
-          containerRef={containerRef}
-        />
+        {/* ツリービューサイドパネル（単体グラフビューの時のみ） */}
+        {!isInSplitView && (
+          <div
+            style={{
+              width: '300px',
+              minWidth: '250px',
+              maxWidth: '400px',
+              borderRight: '1px solid #e5e7eb',
+              backgroundColor: '#fafafa',
+              overflow: 'hidden'
+            }}
+          >
+            <FileTreeExplorer
+              files={files}
+              selectedFile={selectedFile}
+              onFileSelect={onFileSelect}
+              isCompact={true}
+            />
+          </div>
+        )}
+
+        {/* グラフエリア */}
+        <div
+          style={{
+            flex: 1,
+            overflow: 'auto',
+            backgroundColor: 'white',
+            minHeight: '300px',
+          }}
+        >
+          <GraphRenderer 
+            files={files}
+            selectedFile={selectedFile}
+            onFileSelect={onFileSelect}
+            changedFiles={changedFiles}
+            impactMode={impactMode}
+            onResetImpactMode={onResetImpactMode}
+            containerRef={containerRef}
+          />
+        </div>
       </div>
     </div>
   );
