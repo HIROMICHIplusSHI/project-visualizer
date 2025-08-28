@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from 'react';
 import { extractDependencies, type GitHubFile } from '../services/githubApi';
+import { countLines } from '../utils/fileUtils';
 
 interface UseLocalFilesReturn {
   // States
@@ -85,6 +86,7 @@ export const useLocalFiles = (): UseLocalFilesReturn => {
               content,
               size: file.size,
               dependencies,
+              lineCount: countLines(content),
             });
           } catch (error) {
             console.warn(`❌ ${file.name}: 読み込みエラー`, error);

@@ -3,6 +3,7 @@
 
 import { useState, useCallback } from 'react';
 import { extractDependencies, type GitHubFile } from '../services/githubApi';
+import { countLines } from '../utils/fileUtils';
 
 interface ProcessingStats {
   total: number;
@@ -85,6 +86,7 @@ export const useDirectoryApi = (): UseDirectoryApiReturn => {
               content,
               size: file.size,
               dependencies,
+              lineCount: countLines(content),
             });
 
             // package.json の情報を表示（初回のみ）

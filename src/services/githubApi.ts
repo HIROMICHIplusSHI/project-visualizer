@@ -1,4 +1,5 @@
 // src/services/githubApi.ts（完全版）
+import { countLines } from '../utils/fileUtils';
 
 // GitHubのファイル情報の型
 export interface GitHubFile {
@@ -165,7 +166,8 @@ export const fetchRepoStructureRecursive = async (
         // ファイルを追加（内容も含む）
         allFiles.push({
           ...item,
-          content: content
+          content: content,
+          lineCount: content ? countLines(content) : undefined
         });
       } else if (item.type === 'dir' && !excludeDirs.includes(item.name)) {
         // 再帰的に探索
