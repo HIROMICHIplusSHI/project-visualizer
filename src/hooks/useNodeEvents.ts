@@ -73,37 +73,39 @@ export const useNodeEvents = ({
           `translate(${nodeStyles.icon.hoverTranslateX}, ${nodeStyles.icon.hoverTranslateY}) scale(${nodeStyles.icon.hoverScale})`
         );
 
-      // 関連リンクの強調
-      linkElements
-        .style('stroke', (l) => {
-          const link = l as D3Link;
-          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-          
-          if (sourceId === d.id || targetId === d.id) {
-            if (impactMode && changedFiles && changedFiles.length > 0) {
-              // Impact色があれば優先
-              return linkStyles.impact.stroke;
+      // 関連リンクの強調（パフォーマンスモードでは最小限の処理のみ）
+      if (perfSettings.showHoverEffects) {
+        linkElements
+          .style('stroke', (l) => {
+            const link = l as D3Link;
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            
+            if (sourceId === d.id || targetId === d.id) {
+              if (impactMode && changedFiles && changedFiles.length > 0) {
+                // Impact色があれば優先
+                return linkStyles.impact.stroke;
+              }
+              return linkStyles.hover.stroke;
             }
-            return linkStyles.hover.stroke;
-          }
-          
-          return linkStyles.default.stroke;
-        })
-        .style('stroke-width', (l) => {
-          const link = l as D3Link;
-          const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
-          const targetId = typeof link.target === 'object' ? link.target.id : link.target;
-          
-          if (sourceId === d.id || targetId === d.id) {
-            if (impactMode && changedFiles && changedFiles.length > 0) {
-              return linkStyles.impact.strokeWidth;
+            
+            return linkStyles.default.stroke;
+          })
+          .style('stroke-width', (l) => {
+            const link = l as D3Link;
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            
+            if (sourceId === d.id || targetId === d.id) {
+              if (impactMode && changedFiles && changedFiles.length > 0) {
+                return linkStyles.impact.strokeWidth;
+              }
+              return linkStyles.hover.strokeWidth;
             }
-            return linkStyles.hover.strokeWidth;
-          }
-          
-          return linkStyles.default.strokeWidth;
-        });
+            
+            return linkStyles.default.strokeWidth;
+          });
+      }
     };
   }, [perfSettings, impactMode, changedFiles]);
 
@@ -121,11 +123,7 @@ export const useNodeEvents = ({
         .select('circle')
         .transition()
         .duration(perfSettings.animationDuration)
-        .attr('r', (d) => {
-          const targetFile = files.find(f => f.id === (d as D3Node).id);
-          // calculateNodeSize関数を使用する必要があるため、ここでは基本サイズを使用
-          return 24; // 基本サイズ - 後でcalculateNodeSizeを使用
-        })
+        .attr('r', nodeStyles.circle.radius)
         .attr('stroke-width', nodeStyles.circle.strokeWidth);
 
       d3.select(this)
@@ -138,6 +136,14 @@ export const useNodeEvents = ({
         );
 
       // リンクを元に戻す（Impact Visualizationモードを考慮）
+      // パフォーマンスモードの場合は重い計算をスキップしてデフォルト値に戻す
+      if (!perfSettings.showHoverEffects) {
+        linkElements
+          .style('stroke', linkStyles.default.stroke)
+          .style('stroke-width', linkStyles.default.strokeWidth);
+        return;
+      }
+
       linkElements
         .style('stroke', (d) => {
           // Impact Visualizationモードの場合は適切な色を設定

@@ -11,6 +11,7 @@ import {
   toggleNodeExpansion,
   type FileTreeNode 
 } from '../utils/fileTreeUtils';
+import { formatLineCount } from '../utils/fileUtils';
 
 interface FileTreeExplorerProps {
   files: GitHubFile[];
@@ -18,6 +19,7 @@ interface FileTreeExplorerProps {
   onFileSelect?: (file: GitHubFile) => void;
   className?: string;
   style?: React.CSSProperties;
+  isCompact?: boolean; // 分割ビュー用のコンパクトモード
 }
 
 const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({
@@ -25,7 +27,8 @@ const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({
   selectedFile,
   onFileSelect,
   className,
-  style
+  style,
+  isCompact = false
 }) => {
   const [treeNodes, setTreeNodes] = useState<FileTreeNode[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,10 +76,10 @@ const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({
     <div 
       className={className}
       style={{
-        width: '300px',
+        width: isCompact ? '100%' : '300px',
         height: '100%',
-        borderRight: '1px solid #e5e7eb',
-        backgroundColor: '#fafafa',
+        borderRight: isCompact ? 'none' : '1px solid #e5e7eb',
+        backgroundColor: isCompact ? '#f8fafc' : '#fafafa',
         display: 'flex',
         flexDirection: 'column',
         ...style
@@ -84,7 +87,7 @@ const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({
     >
       {/* ヘッダー */}
       <div style={{
-        padding: '12px',
+        padding: isCompact ? '8px' : '12px',
         borderBottom: '1px solid #e5e7eb',
         backgroundColor: '#f9fafb'
       }}>
@@ -265,14 +268,14 @@ const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({
               {node.name}
             </span>
 
-            {/* ファイルサイズ（小さく表示） */}
-            {node.type === 'file' && node.file?.size && (
+            {/* 行数（小さく表示） */}
+            {node.type === 'file' && (
               <span style={{
                 fontSize: '10px',
                 color: '#9ca3af',
                 marginLeft: '8px'
               }}>
-                {formatFileSize(node.file.size)}
+                {formatLineCount(node.file?.lineCount)}
               </span>
             )}
           </div>
@@ -292,13 +295,6 @@ const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({
       </div>
     </div>
   );
-};
-
-// ファイルサイズフォーマット関数
-const formatFileSize = (bytes: number): string => {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 };
 
 export default FileTreeExplorer;

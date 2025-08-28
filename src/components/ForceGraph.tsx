@@ -12,6 +12,7 @@ interface ForceGraphProps {
   changedFiles?: string[];
   impactMode?: boolean;
   onResetImpactMode?: () => void;
+  isInSplitView?: boolean;
 }
 
 const ForceGraph: React.FC<ForceGraphProps> = ({
@@ -20,7 +21,8 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
   onFileSelect,
   changedFiles,
   impactMode,
-  onResetImpactMode
+  onResetImpactMode,
+  isInSplitView = false
 }) => {
   return (
     <GraphContainer 
@@ -30,6 +32,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
       changedFiles={changedFiles}
       impactMode={impactMode}
       onResetImpactMode={onResetImpactMode}
+      isInSplitView={isInSplitView}
     />
   );
 };

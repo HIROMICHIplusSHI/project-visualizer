@@ -201,29 +201,45 @@ const findDependencyPath = (
 
 // ⭐ パフォーマンスモード用の設定
 export const getPerformanceSettings = (nodeCount: number) => {
-  if (nodeCount > 100) {
+  if (nodeCount > 200) {
     return {
       showLabels: false, // ラベル非表示
       showHoverEffects: false, // ホバー効果なし
       animationDuration: 0, // アニメーションなし
-      alphaDecay: 0.1, // 早く収束
-      velocityDecay: 0.8, // 動き制限
+      alphaDecay: 0.15, // さらに早く収束
+      velocityDecay: 0.9, // 動きを強く制限
+      isPerformanceMode: true,
+      performanceLevel: 'extreme' as const,
     };
-  } else if (nodeCount > 50) {
+  } else if (nodeCount > 150) {
     return {
       showLabels: true,
       showHoverEffects: false, // ホバー効果なし
-      animationDuration: 100, // 短いアニメーション
-      alphaDecay: 0.05,
-      velocityDecay: 0.6,
+      animationDuration: 50, // 極短時間アニメーション
+      alphaDecay: 0.1, // 早く収束
+      velocityDecay: 0.8, // 動き制限
+      isPerformanceMode: true,
+      performanceLevel: 'high' as const,
+    };
+  } else if (nodeCount > 100) {
+    return {
+      showLabels: true,
+      showHoverEffects: true, // ホバー効果は有効のまま
+      animationDuration: 150, // 短めアニメーション
+      alphaDecay: 0.03,
+      velocityDecay: 0.5,
+      isPerformanceMode: true,
+      performanceLevel: 'light' as const,
     };
   }
-  // デフォルト（50ファイル以下）
+  // デフォルト（100ファイル以下）
   return {
     showLabels: true,
     showHoverEffects: true,
     animationDuration: 200,
     alphaDecay: 0.02,
     velocityDecay: 0.4,
+    isPerformanceMode: false,
+    performanceLevel: 'normal' as const,
   };
 };

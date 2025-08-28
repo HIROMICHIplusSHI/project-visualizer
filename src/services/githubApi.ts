@@ -10,6 +10,7 @@ export interface GitHubFile {
   dependencies?: string[];
   id: number; // 必須に変更（?を削除）
   content?: string; // ファイル内容
+  lineCount?: number; // 行数情報
 }
 
 // URLからownerとrepoを取り出す関数
@@ -60,13 +61,25 @@ export const fetchFileContent = async (
   downloadUrl: string
 ): Promise<string> => {
   try {
-    const response = await fetch(downloadUrl);
+    // より詳細なエラー情報を提供
+    console.log(`🔄 ファイル内容を取得中: ${downloadUrl}`);
+    
+    const response = await fetch(downloadUrl, {
+      headers: {
+        'Accept': 'text/plain, application/octet-stream, */*',
+      },
+    });
+    
     if (!response.ok) {
-      throw new Error('ファイル内容の取得に失敗');
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    return await response.text();
+    
+    const content = await response.text();
+    console.log(`📄 取得完了: ${content.length}文字`);
+    return content;
   } catch (error) {
     console.error('File fetch error:', error);
+    // ネットワークエラーやCORSエラーの場合は空文字を返す
     return '';
   }
 };
@@ -111,8 +124,49 @@ export const fetchRepoStructureRecursive = async (
 
     for (const item of data) {
       if (item.type === 'file') {
-        // ファイルを追加
-        allFiles.push(item);
+        // ファイル内容を取得
+        let content = '';
+        
+        // デバッグ用ログ
+        console.log(`📄 ${item.name}: content=${!!item.content}, download_url=${!!item.download_url}, size=${item.size}`);
+        
+        // GitHub APIから直接content（base64）がある場合
+        if (item.content && typeof item.content === 'string') {
+          try {
+            // base64の改行を削除してからデコード
+            const cleanBase64 = item.content.replace(/\s/g, '');
+            content = atob(cleanBase64);
+            console.log(`✅ Base64デコード成功: ${item.name} (${content.length}文字)`);
+          } catch (error) {
+            console.warn(`⚠️ Base64デコードエラー ${item.name}:`, error);
+            // base64デコードに失敗した場合はdownload_urlから取得を試行
+            if (item.download_url) {
+              try {
+                content = await fetchFileContent(item.download_url);
+                console.log(`✅ download_urlから取得成功: ${item.name}`);
+              } catch (fetchError) {
+                console.warn(`❌ download_url取得エラー ${item.name}:`, fetchError);
+              }
+            }
+          }
+        }
+        // contentが空またはない場合はdownload_urlから取得を試行
+        else if (item.download_url) {
+          try {
+            content = await fetchFileContent(item.download_url);
+            console.log(`✅ download_urlから取得成功: ${item.name} (${content.length}文字)`);
+          } catch (error) {
+            console.warn(`❌ ファイル内容取得エラー ${item.name}:`, error);
+          }
+        } else {
+          console.warn(`⚠️ ファイル内容の取得方法なし: ${item.name}`);
+        }
+        
+        // ファイルを追加（内容も含む）
+        allFiles.push({
+          ...item,
+          content: content
+        });
       } else if (item.type === 'dir' && !excludeDirs.includes(item.name)) {
         // 再帰的に探索
         console.log(`  ${'  '.repeat(depth)}↳ ${item.name}/`);

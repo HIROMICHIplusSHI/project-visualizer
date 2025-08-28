@@ -7,6 +7,7 @@ import {
   extractDependencies,
   type GitHubFile 
 } from '../services/githubApi';
+import { countLines, isCodeFile } from '../utils/fileUtils';
 
 interface UseGitHubApiReturn {
   // States
@@ -30,11 +31,18 @@ export const useGitHubApi = (): UseGitHubApiReturn => {
 
     const GitHubFilePromises = githubFiles.map(async (file, index) => {
       let dependencies: string[] = [];
+      let lineCount: number | undefined = undefined;
       
-      if (file.content && (file.name.endsWith('.ts') || file.name.endsWith('.tsx') || file.name.endsWith('.js') || file.name.endsWith('.jsx'))) {
+      // ファイルの場合は行数をカウント
+      if (file.type === 'file' && file.content) {
+        lineCount = countLines(file.content);
+      }
+      
+      // 依存関係の解析（コードファイルのみ）
+      if (file.content && isCodeFile(file.name) && (file.name.endsWith('.ts') || file.name.endsWith('.tsx') || file.name.endsWith('.js') || file.name.endsWith('.jsx'))) {
         try {
           dependencies = extractDependencies(file.content, file.path);
-          console.log(`✅ ${file.name}: ${dependencies.length}個の依存関係`);
+          console.log(`✅ ${file.name}: ${dependencies.length}個の依存関係, ${lineCount}行`);
         } catch (error) {
           console.warn(`⚠️ ${file.name}: 依存関係の抽出でエラー`, error);
         }
@@ -44,6 +52,7 @@ export const useGitHubApi = (): UseGitHubApiReturn => {
         ...file,
         id: index + 1,
         dependencies,
+        lineCount,
       };
     });
 

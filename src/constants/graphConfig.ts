@@ -74,7 +74,7 @@ export const GRAPH_CONFIG = {
     boundaryPadding: NODE_CONFIG.collisionPadding.withoutHover,
   },
   performance: {
-    labelThreshold: 50, // ラベル表示の閾値（ファイル数）
+    labelThreshold: 100, // ラベル表示の閾値（ファイル数）
   },
 } as const;
 

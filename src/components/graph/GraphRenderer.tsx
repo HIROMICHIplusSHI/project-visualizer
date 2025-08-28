@@ -24,6 +24,7 @@ import {
 
 // スタイル・設定
 import { GRAPH_CONFIG } from '../../constants/graphConfig';
+import { getPerformanceSettings } from '../../constants/graphStyles';
 
 interface GraphRendererProps {
   files: GitHubFile[];
@@ -71,6 +72,9 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
   useEffect(() => {
     if (!svgRef.current || files.length === 0) return;
 
+    // パフォーマンス設定取得
+    const perfSettings = getPerformanceSettings(files.length);
+
     // 前回の描画内容をクリア（SVGとコントロールボタン両方）
     d3.select(svgRef.current).selectAll('*').remove();
     
@@ -113,10 +117,14 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
     // ノードの描画
     const nodeGroup = createNodeGroup(g, nodes);
     
-    // ノード要素の描画
+    // ノード要素の描画（パフォーマンスモードを考慮）
     renderNodeCircles(nodeGroup, files, impactMode, changedFiles, dependencyMap);
     renderNodeIcons(nodeGroup);
-    renderNodeLabels(nodeGroup, files.length);
+    
+    // パフォーマンスモードでのラベル表示制御
+    if (perfSettings.showLabels) {
+      renderNodeLabels(nodeGroup, files.length);
+    }
 
     // インタラクションの設定
     const drag = createDragBehavior(simulation);
@@ -131,8 +139,16 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
     if (mouseEnterHandler) nodeGroup.on('mouseenter', mouseEnterHandler);
     if (mouseLeaveHandler) nodeGroup.on('mouseleave', mouseLeaveHandler);
 
-    // シミュレーションの更新処理
+    // シミュレーションの更新処理（パフォーマンス最適化）
+    let tickCounter = 0; // フレームスキップ用カウンター
     simulation.on('tick', () => {
+      tickCounter++;
+      
+      // 極速モードではフレームスキップ（2フレームに1回更新）
+      if (perfSettings.performanceLevel === 'extreme' && tickCounter % 2 !== 0) {
+        return;
+      }
+      
       // リンクの位置更新
       linkElements
         .attr('x1', (d) => {
