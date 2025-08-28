@@ -11,7 +11,7 @@ import {
   toggleNodeExpansion,
   type FileTreeNode 
 } from '../utils/fileTreeUtils';
-import { formatLineCount } from '../utils/fileUtils';
+import LineCountBadge from './ui/LineCountBadge';
 
 interface FileTreeExplorerProps {
   files: GitHubFile[];
@@ -268,23 +268,13 @@ const FileTreeExplorer: React.FC<FileTreeExplorerProps> = ({
               {node.name}
             </span>
 
-            {/* 行数（色分け + 背景） */}
+            {/* 行数バッジ */}
             {node.type === 'file' && (
-              <span style={{
-                fontSize: '10px',
-                marginLeft: '8px',
-                backgroundColor: '#f1f5f9',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                border: '1px solid #e2e8f0'
-              }}>
-                <span style={{ color: '#0066cc', fontWeight: '600' }}>
-                  {node.file?.lineCount || '0'}
-                </span>
-                <span style={{ color: '#64748b', fontSize: '9px' }}>
-                  行
-                </span>
-              </span>
+              <LineCountBadge 
+                lineCount={node.file?.lineCount}
+                variant={isCompact ? 'compact' : 'default'}
+                style={{ marginLeft: '8px' }}
+              />
             )}
           </div>
         ))}
