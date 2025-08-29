@@ -33,7 +33,7 @@ interface UseNodeEventsReturn {
 export const useNodeEvents = ({
   files,
   onFileSelect,
-  selectedFile: _selectedFile,
+  selectedFile: _selectedFile, // eslint-disable-line @typescript-eslint/no-unused-vars
   changedFiles,
   impactMode
 }: UseNodeEventsProps): UseNodeEventsReturn => {
@@ -51,11 +51,11 @@ export const useNodeEvents = ({
   const handleNodeMouseEnter = useCallback((
     nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
     linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
-    dependencyMap: Record<string, string[]>
+    dependencyMap: Record<string, string[]> // eslint-disable-line @typescript-eslint/no-unused-vars
   ) => {
     if (!perfSettings.showHoverEffects) return;
 
-    return function (this: SVGGElement, _event: any, d: D3Node) {
+    return function (this: SVGGElement, _event: MouseEvent, d: D3Node) {
       // ノードのホバー効果
       d3.select(this)
         .select('circle')

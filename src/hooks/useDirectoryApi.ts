@@ -163,7 +163,7 @@ export const useDirectoryApi = (): UseDirectoryApiReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isSupported, processDirectory]);
 
   // エラー状態をクリアする
   const clearError = useCallback(() => {

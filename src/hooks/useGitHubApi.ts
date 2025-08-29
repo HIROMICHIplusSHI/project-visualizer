@@ -4,20 +4,12 @@
 import { useState, useCallback } from 'react';
 import { 
   fetchRepoStructureRecursive, 
-  extractDependencies,
-  type GitHubFile 
+  extractDependencies
 } from '../services/githubApi';
+import type { GitHubFile, UseGitHubApiReturn } from '../types';
 import { countLines, isCodeFile } from '../utils/fileUtils';
 
-interface UseGitHubApiReturn {
-  // States
-  isLoading: boolean;
-  error: string;
-  
-  // Actions  
-  fetchRepository: (url: string) => Promise<GitHubFile[]>;
-  clearError: () => void;
-}
+// UseGitHubApiReturn型は src/types/hooks.ts に移行
 
 export const useGitHubApi = (): UseGitHubApiReturn => {
   const [isLoading, setIsLoading] = useState<boolean>(false);

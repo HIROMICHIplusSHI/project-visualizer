@@ -42,7 +42,7 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
   onFileSelect,
   changedFiles,
   impactMode,
-  onResetImpactMode: _onResetImpactMode,
+  onResetImpactMode: _onResetImpactMode, // eslint-disable-line @typescript-eslint/no-unused-vars
   containerRef
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);

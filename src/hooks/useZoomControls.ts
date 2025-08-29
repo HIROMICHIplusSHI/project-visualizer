@@ -79,7 +79,7 @@ export const useZoomControls = (): UseZoomControlsReturn => {
       })
       .on('click', () => {
         // Reset button clicked
-        const currentTransform = d3.zoomTransform(svg.node()!);
+        const currentTransform = d3.zoomTransform(svg.node()!); // eslint-disable-line @typescript-eslint/no-unused-vars
         // Current zoom transform before reset
         
         // ズーム/パン位置のリセット
@@ -93,7 +93,7 @@ export const useZoomControls = (): UseZoomControlsReturn => {
         
         // リセット完了後に確認
         setTimeout(() => {
-          const afterTransform = d3.zoomTransform(svg.node()!);
+          const afterTransform = d3.zoomTransform(svg.node()!); // eslint-disable-line @typescript-eslint/no-unused-vars
           // Transform after reset
         }, 600);
       });
