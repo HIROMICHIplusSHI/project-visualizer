@@ -2,15 +2,9 @@ import React from 'react';
 import { List, GitBranch, Columns } from 'lucide-react';
 import { theme } from '../styles/theme';
 import Tooltip from './ui/Tooltip';
+import type { ViewTabsProps } from '../types/components';
 
-interface ViewTabsProps {
-  currentView: 'list' | 'graph' | 'split';
-  onViewChange: (view: 'list' | 'graph' | 'split') => void;
-  // リアルタイム監視関連のprops
-  showRealtimeMonitor?: boolean;
-  isMonitoring?: boolean;
-  onToggleMonitoring?: () => void;
-}
+// TODO(human): ViewTabsProps 型定義を components.ts に移行完了
 
 function ViewTabs({
   currentView,

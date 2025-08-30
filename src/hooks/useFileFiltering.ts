@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { type GitHubFile } from '../services/githubApi';
+import type { FileFilterType } from '../types/common';
 
-export type FileFilter = 'all' | 'withDeps' | 'main';
+// 型エイリアスで互換性を保持（将来的に削除予定）
+export type FileFilter = FileFilterType;
 export type ViewMode = 'list' | 'graph' | 'split';
 
 export const useFileFiltering = (files: GitHubFile[]) => {

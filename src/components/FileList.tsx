@@ -1,20 +1,9 @@
 // components/FileList.tsx（新規作成）
 import { useState } from 'react';
 import { FileNode } from '../FileNode';
+import type { FileData, FileListProps } from '../types/components';
 
-// 型定義を共通化するためexport
-export interface FileData {
-  id: number;
-  name: string;
-  path?: string;
-  type?: 'file' | 'dir'; // 👈 追加
-  size?: number; // 👈 追加
-  dependencies?: string[];
-}
-
-interface FileListProps {
-  files: FileData[];
-}
+// TODO(human): FileData と FileListProps 型定義を components.ts に移行完了
 
 const FileList: React.FC<FileListProps> = ({ files }) => {
   // 選択状態の管理はFileList内で行う

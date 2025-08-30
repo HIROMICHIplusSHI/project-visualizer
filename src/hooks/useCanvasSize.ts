@@ -3,16 +3,9 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { calculateCanvasSize } from '../utils/graphHelpers';
+import type { UseCanvasSizeProps, CanvasSize } from '../types/hooks';
 
-interface UseCanvasSizeProps {
-  files: any[]; // ファイル配列
-  containerRef?: React.RefObject<HTMLDivElement | null>;
-}
-
-interface CanvasSize {
-  width: number;
-  height: number;
-}
+// TODO(human): UseCanvasSizeProps と CanvasSize 型定義を hooks.ts に移行完了
 
 /**
  * 動的キャンバスサイズを管理するカスタムフック

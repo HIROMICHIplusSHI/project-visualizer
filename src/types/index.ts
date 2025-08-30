@@ -5,16 +5,55 @@
 export type { GitHubFile } from './api';
 
 // Hook関連型
-export type { UseGitHubApiReturn } from './hooks';
+export type { 
+  UseGitHubApiReturn,
+  UseDirectoryApiReturn,
+  UseFileStorageReturn,
+  UseLocalFilesReturn,
+  UseDragBehaviorReturn,
+  UseZoomControlsReturn,
+  UseNodeEventsReturn,
+  UseNodeEventsProps,
+  UseForceSimulationProps,
+  UseCanvasSizeProps,
+  UseGraphInteractionsProps,
+  ProcessingStats,
+  CanvasSize
+} from './hooks';
 
 // Component関連型
-export type { ForceGraphProps } from './components';
+export type { 
+  ForceGraphProps,
+  FileData,
+  FileNodeProps,
+  HeaderProps,
+  URLInputProps,
+  FileIconProps,
+  TooltipProps,
+  LineCountBadgeProps,
+  FileListProps,
+  ViewTabsProps,
+  ProjectTreeViewProps,
+  FileTreeExplorerProps,
+  MainViewSectionProps,
+  ProjectInputSectionProps,
+  WelcomeSectionProps,
+  StatusSectionProps,
+  FileListSectionProps,
+  GitHubRepoInputProps,
+  LocalProjectInputProps,
+  GraphContainerProps,
+  GraphRendererProps
+} from './components';
 
 // 共通型
 export type {
   EventHandler,
   EventHandlerWithParam,
   Selectable,
-  FileFilter,
+  FileFilterFunction,
+  FileFilterType,
+  D3Node,
+  D3Link,
   LoadingState
 } from './common';

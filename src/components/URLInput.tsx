@@ -1,8 +1,7 @@
 import { useState } from 'react';
+import type { URLInputProps } from '../types/components';
 
-interface URLInputProps {
-  onSubmit: (url: string) => void;
-}
+// TODO(human): URLInputProps 型定義を components.ts に移行完了
 
 // URLInput.tsx
 

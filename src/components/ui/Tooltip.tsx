@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
+import type { TooltipProps } from '../../types/components';
 
-interface TooltipProps {
-  content: string;
-  children: React.ReactNode;
-  position?: 'top' | 'bottom' | 'left' | 'right';
-}
+// TODO(human): TooltipProps 型定義を components.ts に移行完了
 
 const Tooltip: React.FC<TooltipProps> = ({ 
   content, 

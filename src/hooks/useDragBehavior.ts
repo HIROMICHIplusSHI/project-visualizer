@@ -3,11 +3,10 @@
 
 import { useCallback } from 'react';
 import * as d3 from 'd3';
-import type { D3Node, D3Link } from './useForceSimulation';
+import type { D3Node, D3Link } from '../types/common';
+import type { UseDragBehaviorReturn } from '../types/hooks';
 
-interface UseDragBehaviorReturn {
-  createDragBehavior: (
-    simulation: d3.Simulation<D3Node, D3Link>
+// TODO(human): UseDragBehaviorReturn 型定義を hooks.ts に移行完了
   ) => d3.DragBehavior<SVGGElement, D3Node, D3Node | d3.SubjectPosition>;
 }
 

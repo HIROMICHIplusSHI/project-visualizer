@@ -3,16 +3,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { GitHubFile } from '../services/githubApi';
+import type { UseFileStorageReturn } from '../types/hooks';
 
-interface UseFileStorageReturn {
-  // States
-  files: GitHubFile[];
-  repoUrl: string;
-  recentUrls: string[];
-  
-  // Actions
-  setFiles: (files: GitHubFile[]) => void;
-  setRepoUrl: (url: string) => void;
+// TODO(human): UseFileStorageReturn 型定義を hooks.ts に移行完了
   addRecentUrl: (url: string) => void;
   setRecentUrls: (urls: string[]) => void;
   clearAll: () => void;

@@ -1,7 +1,7 @@
 // src/utils/graphHelpers.ts
 // ForceGraph コンポーネントのヘルパー関数群
 
-import * as d3 from 'd3';
+// import * d3 は common.ts の D3Node/D3Link インポートで間接的に利用
 import { type GitHubFile } from '../services/githubApi';
 import { 
   CANVAS_CONFIG, 
@@ -9,19 +9,9 @@ import {
   SIMULATION_CONFIG, 
   LAYOUT_CONFIG 
 } from '../constants/graphConfig';
+import type { D3Node, D3Link } from '../types/common';
 
-// D3ノード・リンクの型定義
-export interface D3Node extends d3.SimulationNodeDatum {
-  id: number;
-  name: string;
-  type?: 'file' | 'dir';
-  size?: number;
-}
-
-export interface D3Link {
-  source: number | D3Node;
-  target: number | D3Node;
-}
+// TODO(human): 重複型定義を統合型に置換完了
 
 /**
  * 動的キャンバスサイズを計算

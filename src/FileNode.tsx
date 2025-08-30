@@ -1,16 +1,9 @@
 // FileNode.tsx
 
 import { useState } from 'react';
+import type { FileNodeProps } from './types/components';
 
-// FileNode.tsx
-
-type FileNodeProps = {
-  fileName: string;
-  dependencies?: string[];
-  isSelected?: boolean; // 追加
-  isDependency?: boolean; // 追加
-  onSelect?: () => void; // 追加
-};
+// TODO(human): FileNodeProps 型定義を components.ts に移行完了
 
 export function FileNode({
   fileName,

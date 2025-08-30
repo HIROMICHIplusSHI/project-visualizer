@@ -2,19 +2,14 @@
 // D3.jsグラフインタラクション統合フック - 分離された専門フックを統合
 
 import type { GitHubFile } from '../services/githubApi';
+import type { UseGraphInteractionsProps } from '../types/hooks';
 
 // 分離されたフックをインポート
 import { useZoomControls } from './useZoomControls';
 import { useDragBehavior } from './useDragBehavior';
 import { useNodeEvents } from './useNodeEvents';
 
-interface UseGraphInteractionsProps {
-  files: GitHubFile[];
-  onFileSelect?: (file: GitHubFile | null) => void;
-  selectedFile?: GitHubFile | null;
-  changedFiles?: string[];
-  impactMode?: boolean;
-}
+// TODO(human): UseGraphInteractionsProps 型定義を hooks.ts に移行完了
 
 export const useGraphInteractions = ({
   files,

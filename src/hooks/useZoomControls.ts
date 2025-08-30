@@ -3,16 +3,9 @@
 
 import { useCallback } from 'react';
 import * as d3 from 'd3';
+import type { UseZoomControlsReturn } from '../types/hooks';
 
-interface UseZoomControlsReturn {
-  createZoomBehavior: (svg: d3.Selection<SVGSVGElement, unknown, null, undefined>) => {
-    g: d3.Selection<SVGGElement, unknown, null, undefined>;
-    zoom: d3.ZoomBehavior<SVGSVGElement, unknown>;
-  };
-  createZoomControls: (
-    parentElement: HTMLElement,
-    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-    zoom: d3.ZoomBehavior<SVGSVGElement, unknown>,
+// TODO(human): UseZoomControlsReturn 型定義を hooks.ts に移行完了
     onReset?: () => void
   ) => d3.Selection<HTMLDivElement, unknown, null, undefined>;
 }
