@@ -56,7 +56,9 @@ export interface UseFileStorageReturn {
   setFiles: (files: GitHubFile[]) => void;
   setRepoUrl: (url: string) => void;
   addRecentUrl: (url: string) => void;
+  setRecentUrls: (urls: string[]) => void;
   clearStorage: () => void;
+  clearAll: () => void;
 }
 
 export interface UseLocalFilesReturn {

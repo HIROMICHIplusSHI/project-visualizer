@@ -63,6 +63,7 @@ const GraphRenderer: React.FC<GraphRendererProps> = ({
     handleNodeMouseLeave
   } = useGraphInteractions({
     files,
+    canvasSize,
     onFileSelect,
     selectedFile,
     changedFiles,

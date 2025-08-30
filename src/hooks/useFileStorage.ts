@@ -108,6 +108,7 @@ export const useFileStorage = (): UseFileStorageReturn => {
     setRepoUrl,
     addRecentUrl,
     setRecentUrls,
+    clearStorage: clearAll, // clearAll を clearStorage としてもエクスポート
     clearAll,
   };
 };
