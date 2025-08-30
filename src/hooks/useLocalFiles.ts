@@ -4,16 +4,9 @@
 import { useState, useCallback } from 'react';
 import { extractDependencies, type GitHubFile } from '../services/githubApi';
 import { countLines } from '../utils/fileUtils';
+import type { UseLocalFilesReturn } from '../types/hooks';
 
-interface UseLocalFilesReturn {
-  // States
-  isLoading: boolean;
-  error: string;
-  
-  // Actions
-  loadLocalFolder: (event: React.ChangeEvent<HTMLInputElement>) => Promise<GitHubFile[]>;
-  clearError: () => void;
-}
+// TODO(human): UseLocalFilesReturn 型定義を hooks.ts に移行完了
 
 export const useLocalFiles = (): UseLocalFilesReturn => {
   const [isLoading, setIsLoading] = useState<boolean>(false);

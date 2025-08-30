@@ -2,11 +2,9 @@
 // VS Code風のファイル拡張子別SVGアイコンコンポーネント
 
 import React from 'react';
+import type { FileIconProps } from '../../types/components';
 
-interface FileIconProps {
-  fileName: string;
-  size?: number;
-}
+// TODO(human): FileIconProps 型定義を components.ts に移行完了
 
 const FileIcon: React.FC<FileIconProps> = ({ fileName, size = 16 }) => {
   // TODO(human): 拡張子に応じたSVGアイコンを返すロジックを実装

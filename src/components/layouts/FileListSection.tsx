@@ -35,7 +35,7 @@ const FileListSection: React.FC<FileListSectionProps> = ({
   onFileFilterChange,
   onImpactModeChange,
   onToggleMonitoring,
-  onFileSelect: _onFileSelect,
+  onFileSelect: _onFileSelect, // eslint-disable-line @typescript-eslint/no-unused-vars
   onResetAll,
 }) => {
   const handleImpactModeChange = (checked: boolean) => {

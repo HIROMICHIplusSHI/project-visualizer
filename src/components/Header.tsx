@@ -1,10 +1,8 @@
 import { GitBranch, FolderPlus } from 'lucide-react';
 import { theme } from '../styles/theme';
+import type { HeaderProps } from '../types/components';
 
-interface HeaderProps {
-  title: string;
-  onNewProject?: () => void;
-}
+// TODO(human): HeaderProps 型定義を components.ts に移行完了
 
 function Header({ title, onNewProject }: HeaderProps) {
   const headerStyle = {

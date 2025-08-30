@@ -2,16 +2,9 @@
 // ファイル階層構造変換ユーティリティ
 
 import type { GitHubFile } from '../services/githubApi';
+import type { FileTreeNode } from '../types/common';
 
-export interface FileTreeNode {
-  name: string;
-  path: string;
-  type: 'file' | 'directory';
-  children?: FileTreeNode[];
-  file?: GitHubFile;  // 元のファイルデータへの参照
-  isExpanded?: boolean;
-  level: number;  // インデントレベル
-}
+// TODO(human): FileTreeNode 型定義を common.ts に移行完了
 
 /**
  * フォルダを初期状態で展開すべきかを判定

@@ -2,18 +2,10 @@
 // D3.js力学グラフ統合コンポーネント - 分離されたコンポーネントを統合
 
 import React from 'react';
-import type { GitHubFile } from '../services/githubApi';
+import type { ForceGraphProps } from '../types';
 import GraphContainer from './graph/GraphContainer';
 
-interface ForceGraphProps {
-  files: GitHubFile[];
-  selectedFile?: GitHubFile | null;
-  onFileSelect?: (file: GitHubFile | null) => void;
-  changedFiles?: string[];
-  impactMode?: boolean;
-  onResetImpactMode?: () => void;
-  isInSplitView?: boolean;
-}
+// ForceGraphProps型は src/types/components.ts に移行
 
 const ForceGraph: React.FC<ForceGraphProps> = ({
   files,

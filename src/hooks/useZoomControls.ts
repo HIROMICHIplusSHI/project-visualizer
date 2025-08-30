@@ -3,19 +3,9 @@
 
 import { useCallback } from 'react';
 import * as d3 from 'd3';
+import type { UseZoomControlsReturn } from '../types/hooks';
 
-interface UseZoomControlsReturn {
-  createZoomBehavior: (svg: d3.Selection<SVGSVGElement, unknown, null, undefined>) => {
-    g: d3.Selection<SVGGElement, unknown, null, undefined>;
-    zoom: d3.ZoomBehavior<SVGSVGElement, unknown>;
-  };
-  createZoomControls: (
-    parentElement: HTMLElement,
-    svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-    zoom: d3.ZoomBehavior<SVGSVGElement, unknown>,
-    onReset?: () => void
-  ) => d3.Selection<HTMLDivElement, unknown, null, undefined>;
-}
+// TODO(human): UseZoomControlsReturn 型定義を hooks.ts に移行完了
 
 export const useZoomControls = (): UseZoomControlsReturn => {
   // ズーム機能の設定
@@ -79,7 +69,7 @@ export const useZoomControls = (): UseZoomControlsReturn => {
       })
       .on('click', () => {
         // Reset button clicked
-        const currentTransform = d3.zoomTransform(svg.node()!);
+        const currentTransform = d3.zoomTransform(svg.node()!); // eslint-disable-line @typescript-eslint/no-unused-vars
         // Current zoom transform before reset
         
         // ズーム/パン位置のリセット
@@ -93,7 +83,7 @@ export const useZoomControls = (): UseZoomControlsReturn => {
         
         // リセット完了後に確認
         setTimeout(() => {
-          const afterTransform = d3.zoomTransform(svg.node()!);
+          const afterTransform = d3.zoomTransform(svg.node()!); // eslint-disable-line @typescript-eslint/no-unused-vars
           // Transform after reset
         }, 600);
       });

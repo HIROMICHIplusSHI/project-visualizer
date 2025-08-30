@@ -3,20 +3,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { GitHubFile } from '../services/githubApi';
+import type { UseFileStorageReturn } from '../types/hooks';
 
-interface UseFileStorageReturn {
-  // States
-  files: GitHubFile[];
-  repoUrl: string;
-  recentUrls: string[];
-  
-  // Actions
-  setFiles: (files: GitHubFile[]) => void;
-  setRepoUrl: (url: string) => void;
-  addRecentUrl: (url: string) => void;
-  setRecentUrls: (urls: string[]) => void;
-  clearAll: () => void;
-}
+// TODO(human): UseFileStorageReturn 型定義を hooks.ts に移行完了
 
 export const useFileStorage = (): UseFileStorageReturn => {
   // localStorage から初期状態を復元
@@ -119,6 +108,7 @@ export const useFileStorage = (): UseFileStorageReturn => {
     setRepoUrl,
     addRecentUrl,
     setRecentUrls,
+    clearStorage: clearAll, // clearAll を clearStorage としてもエクスポート
     clearAll,
   };
 };

@@ -1,10 +1,9 @@
 // components/layouts/WelcomeSection.tsx
 // アプリケーションの機能説明UI - App.tsxから抽出
 
-interface WelcomeSectionProps {
-  show: boolean;
-  onDemoClick: () => void;
-}
+import type { WelcomeSectionProps } from '../../types/components';
+
+// TODO(human): WelcomeSectionProps 型定義を components.ts に移行完了
 
 const WelcomeSection: React.FC<WelcomeSectionProps> = ({ show, onDemoClick }) => {
   if (!show) return null;

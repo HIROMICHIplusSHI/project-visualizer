@@ -8,9 +8,9 @@ import FileIcon from './icons/FileIcon';
 import { 
   buildFileTree, 
   flattenFileTree, 
-  toggleNodeExpansion,
-  type FileTreeNode 
+  toggleNodeExpansion
 } from '../utils/fileTreeUtils';
+import type { FileTreeNode } from '../types/common';
 import LineCountBadge from './ui/LineCountBadge';
 
 interface FileTreeExplorerProps {

@@ -4,36 +4,17 @@
 import { useCallback } from 'react';
 import * as d3 from 'd3';
 import type { GitHubFile } from '../services/githubApi';
-import type { D3Node, D3Link } from './useForceSimulation';
+import type { D3Node, D3Link } from '../types/common';
+import type { UseNodeEventsProps, UseNodeEventsReturn } from '../types/hooks';
 import { getPerformanceSettings, calculateImpactLevel } from '../constants/graphStyles';
 import { nodeStyles, linkStyles } from '../constants/graphStyles';
 
-interface UseNodeEventsProps {
-  files: GitHubFile[];
-  onFileSelect?: (file: GitHubFile | null) => void;
-  selectedFile?: GitHubFile | null;
-  changedFiles?: string[];
-  impactMode?: boolean;
-}
-
-interface UseNodeEventsReturn {
-  handleNodeClick: (_event: any, d: D3Node) => void;
-  handleNodeMouseEnter: (
-    nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
-    linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
-    dependencyMap: Record<string, string[]>
-  ) => ((this: SVGGElement, _event: any, d: D3Node) => void) | undefined;
-  handleNodeMouseLeave: (
-    nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
-    linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
-    dependencyMap: Record<string, string[]>
-  ) => ((this: SVGGElement) => void) | undefined;
-}
+// TODO(human): UseNodeEventsProps と UseNodeEventsReturn 型定義を hooks.ts に移行完了
 
 export const useNodeEvents = ({
   files,
   onFileSelect,
-  selectedFile: _selectedFile,
+  selectedFile: _selectedFile, // eslint-disable-line @typescript-eslint/no-unused-vars
   changedFiles,
   impactMode
 }: UseNodeEventsProps): UseNodeEventsReturn => {
@@ -51,11 +32,11 @@ export const useNodeEvents = ({
   const handleNodeMouseEnter = useCallback((
     nodeGroup: d3.Selection<SVGGElement, D3Node, SVGGElement, unknown>,
     linkElements: d3.Selection<SVGLineElement, D3Link, SVGGElement, unknown>,
-    dependencyMap: Record<string, string[]>
+    dependencyMap: Record<string, string[]> // eslint-disable-line @typescript-eslint/no-unused-vars
   ) => {
     if (!perfSettings.showHoverEffects) return;
 
-    return function (this: SVGGElement, _event: any, d: D3Node) {
+    return function (this: SVGGElement, _event: MouseEvent, d: D3Node) {
       // ノードのホバー効果
       d3.select(this)
         .select('circle')

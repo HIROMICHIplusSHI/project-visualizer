@@ -5,25 +5,10 @@ import * as d3 from 'd3';
 import type { GitHubFile } from '../services/githubApi';
 import { getPerformanceSettings } from '../constants/graphStyles';
 import { calculateNodeSize, findFileByPath, createCustomLayoutForce } from '../utils/graphHelpers';
+import type { D3Node, D3Link } from '../types/common';
+import type { UseForceSimulationProps } from '../types/hooks';
 
-export interface D3Node extends d3.SimulationNodeDatum {
-  id: number;
-  name: string;
-  type?: 'file' | 'dir';
-  size?: number;
-}
-
-export interface D3Link {
-  source: number | D3Node;
-  target: number | D3Node;
-}
-
-interface UseForceSimulationProps {
-  files: GitHubFile[];
-  canvasSize: { width: number; height: number };
-  changedFiles?: string[];
-  impactMode?: boolean;
-}
+// TODO(human): UseForceSimulationProps 型定義を hooks.ts に移行完了
 
 export const useForceSimulation = ({ 
   files, 

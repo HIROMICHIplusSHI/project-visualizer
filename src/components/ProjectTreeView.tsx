@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
 import { Folder, File, Search } from 'lucide-react';
 import { type GitHubFile } from '../services/githubApi';
+import type { ProjectTreeViewProps } from '../types/components';
 
-interface ProjectTreeViewProps {
-  files: GitHubFile[];
-  selectedFile?: GitHubFile | null;
-  onFileSelect?: (file: GitHubFile) => void;
-}
+// TODO(human): ProjectTreeViewProps 型定義を components.ts に移行完了
 
 const ProjectTreeView: React.FC<ProjectTreeViewProps> = ({
   files,

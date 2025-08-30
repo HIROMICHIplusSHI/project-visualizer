@@ -2,7 +2,7 @@
 // ノードとリンクの描画ロジック
 import * as d3 from 'd3';
 import type { GitHubFile } from '../services/githubApi';
-import type { D3Node, D3Link } from '../hooks/useForceSimulation';
+import type { D3Node, D3Link } from '../types/common';
 import {
   iconPaths,
   nodeStyles,

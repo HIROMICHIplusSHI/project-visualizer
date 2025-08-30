@@ -3,10 +3,9 @@
 
 import React from 'react';
 import URLInput from '../URLInput';
+import type { GitHubRepoInputProps } from '../../types/components';
 
-interface GitHubRepoInputProps {
-  onURLSubmit: (url: string) => void;
-}
+// TODO(human): GitHubRepoInputProps 型定義を components.ts に移行完了
 
 const GitHubRepoInput: React.FC<GitHubRepoInputProps> = ({
   onURLSubmit,

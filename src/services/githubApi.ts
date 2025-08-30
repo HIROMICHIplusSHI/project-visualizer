@@ -1,18 +1,9 @@
 // src/services/githubApi.ts（完全版）
 import { countLines } from '../utils/fileUtils';
+import type { GitHubFile } from '../types/api';
 
-// GitHubのファイル情報の型
-export interface GitHubFile {
-  name: string;
-  path: string; // 必須のまま
-  type: 'file' | 'dir';
-  size?: number;
-  download_url?: string;
-  dependencies?: string[];
-  id: number; // 必須に変更（?を削除）
-  content?: string; // ファイル内容
-  lineCount?: number; // 行数情報
-}
+// GitHubFile型は src/types/api.ts に移行
+export type { GitHubFile } from '../types/api';
 
 // URLからownerとrepoを取り出す関数
 export const parseGitHubUrl = (url: string) => {

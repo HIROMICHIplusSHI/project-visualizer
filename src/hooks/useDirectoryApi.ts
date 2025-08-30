@@ -4,26 +4,9 @@
 import { useState, useCallback } from 'react';
 import { extractDependencies, type GitHubFile } from '../services/githubApi';
 import { countLines } from '../utils/fileUtils';
+import type { ProcessingStats, UseDirectoryApiReturn } from '../types/hooks';
 
-interface ProcessingStats {
-  total: number;
-  processed: number;
-  skipped: number;
-  errors: number;
-}
-
-interface UseDirectoryApiReturn {
-  // States
-  isLoading: boolean;
-  error: string;
-  
-  // Actions
-  selectDirectory: () => Promise<{ files: GitHubFile[]; dirHandle: any } | null>;
-  clearError: () => void;
-  
-  // Utilities
-  isSupported: () => boolean;
-}
+// TODO(human): ProcessingStats と UseDirectoryApiReturn 型定義を hooks.ts に移行完了
 
 export const useDirectoryApi = (): UseDirectoryApiReturn => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -163,7 +146,7 @@ export const useDirectoryApi = (): UseDirectoryApiReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isSupported, processDirectory]);
 
   // エラー状態をクリアする
   const clearError = useCallback(() => {
