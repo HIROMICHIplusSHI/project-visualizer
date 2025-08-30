@@ -10,7 +10,6 @@ import { getPerformanceSettings, calculateImpactLevel } from '../constants/graph
 import { nodeStyles, linkStyles } from '../constants/graphStyles';
 
 // TODO(human): UseNodeEventsProps と UseNodeEventsReturn 型定義を hooks.ts に移行完了
-}
 
 export const useNodeEvents = ({
   files,

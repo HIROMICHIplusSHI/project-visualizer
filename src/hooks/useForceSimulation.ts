@@ -9,7 +9,6 @@ import type { D3Node, D3Link } from '../types/common';
 import type { UseForceSimulationProps } from '../types/hooks';
 
 // TODO(human): UseForceSimulationProps 型定義を hooks.ts に移行完了
-}
 
 export const useForceSimulation = ({ 
   files, 

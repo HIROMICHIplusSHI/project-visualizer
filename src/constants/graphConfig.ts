@@ -79,8 +79,5 @@ export const GRAPH_CONFIG = {
 } as const;
 
 // 設定値の型定義をエクスポート
-export type CanvasConfig = typeof CANVAS_CONFIG;
-export type NodeConfig = typeof NODE_CONFIG;
-export type SimulationConfig = typeof SIMULATION_CONFIG;
-export type LayoutConfig = typeof LAYOUT_CONFIG;
-export type GraphConfig = typeof GRAPH_CONFIG;
+// TODO(human): 設定型群 (CanvasConfig, NodeConfig, SimulationConfig, LayoutConfig, GraphConfig) を common.ts に移行完了
+// 元の typeof 参照は実際の値オブジェクトとして common.ts で定義済み

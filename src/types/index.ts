@@ -55,5 +55,13 @@ export type {
   FileFilterType,
   D3Node,
   D3Link,
-  LoadingState
+  LoadingState,
+  FileTreeNode,
+  CanvasConfig,
+  NodeConfig,
+  SimulationConfig,
+  LayoutConfig,
+  GraphConfig,
+  User,
+  Todo
 } from './common';

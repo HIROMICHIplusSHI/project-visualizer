@@ -7,8 +7,6 @@ import type { D3Node, D3Link } from '../types/common';
 import type { UseDragBehaviorReturn } from '../types/hooks';
 
 // TODO(human): UseDragBehaviorReturn 型定義を hooks.ts に移行完了
-  ) => d3.DragBehavior<SVGGElement, D3Node, D3Node | d3.SubjectPosition>;
-}
 
 export const useDragBehavior = (): UseDragBehaviorReturn => {
   // ドラッグ機能の設定

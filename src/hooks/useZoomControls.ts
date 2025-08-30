@@ -6,9 +6,6 @@ import * as d3 from 'd3';
 import type { UseZoomControlsReturn } from '../types/hooks';
 
 // TODO(human): UseZoomControlsReturn 型定義を hooks.ts に移行完了
-    onReset?: () => void
-  ) => d3.Selection<HTMLDivElement, unknown, null, undefined>;
-}
 
 export const useZoomControls = (): UseZoomControlsReturn => {
   // ズーム機能の設定

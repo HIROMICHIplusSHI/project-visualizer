@@ -34,3 +34,72 @@ export interface LoadingState {
   isLoading: boolean;
   error?: string;
 }
+
+// ファイルツリー関連型
+export interface FileTreeNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: FileTreeNode[];
+  file?: any; // GitHubFile型（循環依存回避のためany使用）
+  isExpanded?: boolean;
+  level: number;
+}
+
+// グラフ設定関連型（typeof 参照型）
+export type CanvasConfig = {
+  minWidth: number;
+  maxWidth: number;
+  minHeight: number;
+  maxHeight: number;
+  containerMargin: number;
+  baseFileCount: number;
+  widthScaleFactor: number;
+  heightScaleFactor: number;
+};
+
+export type NodeConfig = {
+  baseRadius: number;
+  minRadius: number;
+  maxRadius: number;
+  scaleFactor: number;
+  strokeWidth: number;
+};
+
+export type SimulationConfig = {
+  alphaDecay: number;
+  velocityDecay: number;
+  forceStrength: number;
+  centerForce: number;
+  collideRadius: number;
+  linkDistance: number;
+  linkStrength: number;
+};
+
+export type LayoutConfig = {
+  padding: number;
+  centerX: number;
+  centerY: number;
+};
+
+export type GraphConfig = {
+  canvas: CanvasConfig;
+  node: NodeConfig;
+  simulation: SimulationConfig;
+  layout: LayoutConfig;
+};
+
+// サンプルデータ型
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
+export interface Todo {
+  id: number;
+  title: string;
+  completed: boolean;
+  userId: number;
+}

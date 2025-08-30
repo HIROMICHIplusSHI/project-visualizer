@@ -7,7 +7,6 @@ import { countLines } from '../utils/fileUtils';
 import type { UseLocalFilesReturn } from '../types/hooks';
 
 // TODO(human): UseLocalFilesReturn 型定義を hooks.ts に移行完了
-}
 
 export const useLocalFiles = (): UseLocalFilesReturn => {
   const [isLoading, setIsLoading] = useState<boolean>(false);

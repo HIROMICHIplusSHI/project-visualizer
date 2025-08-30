@@ -7,7 +7,6 @@ import { countLines } from '../utils/fileUtils';
 import type { ProcessingStats, UseDirectoryApiReturn } from '../types/hooks';
 
 // TODO(human): ProcessingStats と UseDirectoryApiReturn 型定義を hooks.ts に移行完了
-}
 
 export const useDirectoryApi = (): UseDirectoryApiReturn => {
   const [isLoading, setIsLoading] = useState<boolean>(false);

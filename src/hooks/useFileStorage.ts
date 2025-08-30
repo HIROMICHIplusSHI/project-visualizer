@@ -6,10 +6,6 @@ import type { GitHubFile } from '../services/githubApi';
 import type { UseFileStorageReturn } from '../types/hooks';
 
 // TODO(human): UseFileStorageReturn 型定義を hooks.ts に移行完了
-  addRecentUrl: (url: string) => void;
-  setRecentUrls: (urls: string[]) => void;
-  clearAll: () => void;
-}
 
 export const useFileStorage = (): UseFileStorageReturn => {
   // localStorage から初期状態を復元
