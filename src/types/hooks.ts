@@ -1,6 +1,12 @@
 // Hooks関連の型定義
 // カスタムフックの戻り値型や引数型
 
+// 📏 ファイルサイズ監視 (現在: 127行, 13型)
+// 🚨 分割検討: 150行超で機能別分割を推奨
+//   - api-hooks.ts (API系Hook型)
+//   - ui-hooks.ts (UI系Hook型)
+//   - data-hooks.ts (データ処理系Hook型)
+
 import type { GitHubFile } from './api';
 
 // 共通型定義

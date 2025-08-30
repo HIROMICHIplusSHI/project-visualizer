@@ -1,6 +1,13 @@
 // UIコンポーネント関連の型定義
 // Props型やコンポーネント固有の型
 
+// 📏 ファイルサイズ監視 (現在: 155行, 21型)
+// 🚨 分割検討: 200行超 または 30型超で以下への分割を推奨
+//   - forms.ts (フォーム関連Props)
+//   - layouts.ts (レイアウト関連Props) 
+//   - ui.ts (UI部品関連Props)
+//   - graph.ts (グラフ関連Props)
+
 import type { GitHubFile } from './api';
 
 // 共通データ型
